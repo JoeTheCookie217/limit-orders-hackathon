@@ -5,7 +5,7 @@ import {
   LB_ROUTER_ADDRESS,
   V2_LB_FACTORY_ADDRESS,
   V2_LB_QUOTER_ADDRESS,
-  V2_LB_ROUTER_ADDRESS,
+  V2_LB_ROUTER_ADDRESS
 } from '@dusalabs/sdk';
 import { CHAIN_ID as MASSA_CHAIN_ID_ENUM } from '@massalabs/massa-web3';
 
@@ -22,7 +22,6 @@ const getEnvVarBool = (key: string, defaultValue?: boolean) =>
 // API Configuration
 export const api = getEnvVar('VITE_API');
 export const baseApi = api.replace('/trpc', '');
-export const datastoreApi = getEnvVar('VITE_DATASTORE_API');
 
 // Network Configuration
 export const NETWORK = getEnvVar('VITE_NETWORK_NAME');
@@ -50,7 +49,7 @@ export const FEATURE_FLAGS = {
   LIMIT_ORDERS: getEnvVarBool('VITE_ENABLE_LIMIT_ORDERS', true),
   DARK_MODE: getEnvVarBool('VITE_ENABLE_DARK_MODE', true),
   AUTO_REFRESH: getEnvVarBool('VITE_ENABLE_AUTO_REFRESH', true),
-  POINTS_V2: getEnvVarBool('VITE_ENABLE_POINTS_V2', false),
+  POINTS_V2: getEnvVarBool('VITE_ENABLE_POINTS_V2', false)
 };
 
 // Theme
