@@ -1,0 +1,154 @@
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  &--full-width {
+    width: 100%;
+  }
+
+  &__label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+  }
+
+  &__helper {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+
+    &--error {
+      color: var(--error-color);
+    }
+  }
+
+  &--error {
+    .input-wrapper {
+      border-color: var(--error-color);
+
+      &:focus-within {
+        border-color: var(--error-color);
+        box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+      }
+    }
+  }
+
+  &--disabled {
+    opacity: 0.6;
+
+    .input-wrapper {
+      background: var(--background-secondary);
+      cursor: not-allowed;
+    }
+  }
+}
+
+.input-wrapper {
+  display: flex;
+  align-items: center;
+  position: relative;
+  background: var(--background);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  transition: var(--transition);
+
+  &:hover:not(:focus-within) {
+    border-color: var(--border-color-hover);
+  }
+
+  &:focus-within {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(var(--primary-color-rgb), 0.2);
+  }
+
+  &--filled {
+    background: var(--background-secondary);
+  }
+
+  &--outline {
+    background: transparent;
+    border-width: 2px;
+  }
+
+  &__left-addon,
+  &__right-addon {
+    display: flex;
+    align-items: center;
+    padding: 0 2px;
+    color: var(--text-secondary);
+    font-size: 14px;
+    white-space: nowrap;
+    user-select: none;
+  }
+
+  &__left-addon {
+    border-right: 1px solid var(--border-color);
+  }
+}
+
+.input {
+  flex: 1;
+  padding: 12px 16px;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 16px;
+  font-family: inherit;
+
+  &::placeholder {
+    color: var(--text-tertiary);
+  }
+
+  &:focus {
+    outline: none;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+  }
+
+  &--with-left-addon {
+    padding-left: 0;
+  }
+
+  &--with-right-addon {
+    padding-right: 0;
+  }
+
+  // Number input specific styles
+  &[type="number"] {
+    -moz-appearance: textfield;
+
+    &::-webkit-outer-spin-button,
+    &::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+  }
+
+  // Remove autofill styles
+  &:-webkit-autofill,
+  &:-webkit-autofill:hover,
+  &:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0px 1000px var(--background) inset;
+    -webkit-text-fill-color: var(--text-primary);
+  }
+}
+
+.price-input__input-section .input-wrapper__right-addon {
+  padding: 0 8px;
+}
+
+@media (max-width: 768px) {
+  .input {
+    font-size: 16px; // Prevent zoom on iOS
+    padding: 14px 16px;
+  }
+
+  .input-wrapper__left-addon,
+  .input-wrapper__right-addon {
+    font-size: 13px;
+  }
+}

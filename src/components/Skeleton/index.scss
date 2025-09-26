@@ -1,0 +1,23 @@
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+  border-radius: 4px;
+  display: inline-block;
+  position: relative;
+  overflow: hidden;
+
+  @media (prefers-color-scheme: dark) {
+    background: linear-gradient(90deg, #2a2a2a 25%, #383838 50%, #2a2a2a 75%);
+    background-size: 200% 100%;
+  }
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}

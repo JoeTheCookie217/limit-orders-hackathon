@@ -1,0 +1,140 @@
+.price-input {
+  margin-bottom: 1rem;
+
+  &--disabled {
+    opacity: 0.5;
+  }
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+  }
+
+  &__label-section {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  &__label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+  }
+
+  &__diff {
+    font-size: 0.75rem;
+    font-weight: 500;
+
+    &--above {
+      color: #10b981; // green
+    }
+
+    &--below {
+      color: #ef4444; // red
+    }
+  }
+
+  &__reset-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 0.25rem;
+    transition: all 0.2s ease;
+
+    &:hover {
+      color: var(--text-primary);
+      background: var(--background-secondary);
+    }
+
+    svg {
+      width: 0.75rem;
+      height: 0.75rem;
+    }
+  }
+
+  &__input-section {
+    position: relative;
+  }
+
+  &__field {
+    width: 100%;
+
+    input {
+      padding-right: 1rem;
+    }
+  }
+
+  &__skeleton {
+    height: 3rem;
+    border-radius: 0.5rem;
+  }
+
+  &__footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 0.5rem;
+  }
+
+  &__invert-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: 0.25rem;
+    transition: all 0.2s ease;
+
+    &:hover {
+      color: var(--text-primary);
+      background: var(--background-secondary);
+    }
+
+    svg {
+      width: 0.75rem;
+      height: 0.75rem;
+    }
+  }
+
+  &__help {
+    margin-top: 0.25rem;
+    text-align: center;
+  }
+
+  &__help-text {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-style: italic;
+  }
+}
+
+// Dark theme adjustments
+@media (prefers-color-scheme: dark) {
+  .price-input {
+    &__diff {
+      &--above {
+        color: #34d399;
+      }
+
+      &--below {
+        color: #f87171;
+      }
+    }
+  }
+}
