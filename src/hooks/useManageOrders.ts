@@ -160,6 +160,10 @@ export const useManageOrders = (): UseManageOrdersReturn => {
       const { fromToken, toToken, fromAmount, limitPrice, orderType } = params;
       const pool = validation.pool!;
 
+      // Declare variables outside try block for error handling
+      let timestamp: number = Date.now();
+      let orderId: number = timestamp;
+
       try {
         const priceNum = parseFloat(limitPrice);
         const amountBigInt = BigInt(
@@ -180,8 +184,8 @@ export const useManageOrders = (): UseManageOrdersReturn => {
         const shouldUseMas = fromToken.symbol === "MAS";
 
         // Create pending order for UI tracking
-        const timestamp = Date.now();
-        const orderId = timestamp;
+        timestamp = Date.now();
+        orderId = timestamp;
 
         const localPendingOrder: LocalPendingLimitOrder = {
           id: orderId.toString(),

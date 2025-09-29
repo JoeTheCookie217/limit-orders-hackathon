@@ -65,7 +65,12 @@ export const useFetchOrders = (): UseFetchOrdersReturn => {
         // Enrich orders with token information in parallel
         const enrichedOrders = await Promise.all(
           orderDetails.map(async (order) => {
-            return await enrichOrderWithTokens(order);
+            // Convert timestamp string to Date before enriching
+            const orderWithDate = {
+              ...order,
+              timestamp: new Date(order.timestamp)
+            };
+            return await enrichOrderWithTokens(orderWithDate);
           }),
         );
 

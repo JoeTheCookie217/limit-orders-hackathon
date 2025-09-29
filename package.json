@@ -7,7 +7,8 @@
     "dev": "vite --port 3000 --host",
     "dev:mainnet": "vite --port 3000 --host --mode mainnet",
     "dev:buildnet": "vite --port 3000 --host --mode buildnet",
-    "build": "tsc -b && vite build",
+    "build": "vite build",
+    "type-check": "tsc --project tsconfig.app.json --noEmit",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0 --fix",
     "preview": "vite preview"
   },

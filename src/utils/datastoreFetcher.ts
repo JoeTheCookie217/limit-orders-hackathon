@@ -229,7 +229,7 @@ const calculateAmountOut = (
  * @returns Promise with enriched order
  */
 export const enrichOrderWithTokens = async (
-  order: BackendOrder & { timestamp: string },
+  order: Omit<BackendOrder, 'timestamp'> & { timestamp: string | Date },
 ): Promise<EnrichedOrder> => {
   try {
     // Get tokens from pool address
@@ -262,7 +262,7 @@ export const enrichOrderWithTokens = async (
       tokenOut,
       amountOut,
       price,
-      timestamp: new Date(order.timestamp),
+      timestamp: order.timestamp instanceof Date ? order.timestamp : new Date(order.timestamp),
     };
   } catch (error) {
     console.error("Error enriching order with tokens:", error, order);
@@ -283,7 +283,7 @@ export const enrichOrderWithTokens = async (
       tokenOut: fallbackToken,
       amountOut: 0n,
       price: 0,
-      timestamp: new Date(order.timestamp),
+      timestamp: order.timestamp instanceof Date ? order.timestamp : new Date(order.timestamp),
     };
   }
 };
