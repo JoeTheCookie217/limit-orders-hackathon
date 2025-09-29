@@ -17,10 +17,14 @@ export interface AccountWrapperContextType {
   connectWallet: () => Promise<void>;
   disconnectWallet: () => void;
   refetch: (keys?: string[]) => void;
+  openBearbyModal: () => boolean;
+  dismissBearbyModal: () => void;
 
   // Loading states
   isLoading: boolean;
   isConnecting: boolean;
+  isAutoConnecting: boolean;
+  shouldOpenBearbyModal: boolean;
 }
 
 export const AccountWrapperContext = createContext<AccountWrapperContextType>({
@@ -33,6 +37,10 @@ export const AccountWrapperContext = createContext<AccountWrapperContextType>({
   connectWallet: async () => {},
   disconnectWallet: () => {},
   refetch: () => {},
+  openBearbyModal: () => false,
+  dismissBearbyModal: () => {},
   isLoading: false,
   isConnecting: false,
+  isAutoConnecting: false,
+  shouldOpenBearbyModal: false,
 });

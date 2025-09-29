@@ -1,4 +1,4 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useState, useEffect } from "react";
 import {
   faCog,
   faMoon,
@@ -18,14 +18,25 @@ const Header: React.FC = () => {
   const {
     connectedAddress,
     isConnecting,
+    isAutoConnecting,
+    shouldOpenBearbyModal,
     connectWallet,
     disconnectWallet,
+    dismissBearbyModal,
     balances,
   } = useContext(AccountWrapperContext);
   const { interfaceTheme, setInterfaceTheme } = useContext(SettingsContext);
 
   const [showWalletModal, setShowWalletModal] = useState(false);
   const [showAccountDropdown, setShowAccountDropdown] = useState(false);
+
+  // Auto-open Bearby modal when shouldOpenBearbyModal is true
+  useEffect(() => {
+    if (shouldOpenBearbyModal && !connectedAddress && !isConnecting) {
+      setShowWalletModal(true);
+      dismissBearbyModal(); // Clear the flag to prevent repeated openings
+    }
+  }, [shouldOpenBearbyModal, connectedAddress, isConnecting, dismissBearbyModal]);
 
   const formatAddress = (address: string) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -109,10 +120,10 @@ const Header: React.FC = () => {
           ) : (
             <Button
               onClick={handleConnectClick}
-              loading={isConnecting}
+              loading={isConnecting || isAutoConnecting}
               size="sm"
             >
-              Connect Wallet
+              {isAutoConnecting ? "Auto-connecting..." : "Connect Wallet"}
             </Button>
           )}
         </div>

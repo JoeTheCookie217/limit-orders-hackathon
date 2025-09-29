@@ -127,6 +127,28 @@
   }
 }
 
+.token-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--background-secondary);
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+
+  .token-logo {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+  }
+
+  span {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+}
+
 .max-btn {
   position: absolute;
   right: 140px;
@@ -269,6 +291,19 @@
   }
 
   .token-selector {
+    padding: 6px 8px;
+
+    span {
+      font-size: 12px;
+    }
+
+    .token-logo {
+      width: 16px;
+      height: 16px;
+    }
+  }
+
+  .token-display {
     padding: 6px 8px;
 
     span {

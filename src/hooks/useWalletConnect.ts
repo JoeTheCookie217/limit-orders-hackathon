@@ -15,11 +15,15 @@ interface UseWalletConnectReturn {
   isConnected: boolean;
   isConnecting: boolean;
   isLoading: boolean;
+  isAutoConnecting: boolean;
+  shouldOpenBearbyModal: boolean;
   connectWallet: () => Promise<void>;
   disconnectWallet: () => void;
   switchAccount: (address: string) => Promise<void>;
   providerList: Wallet[];
   accounts: Provider[] | null;
+  openBearbyModal: () => boolean;
+  dismissBearbyModal: () => void;
 }
 
 export const useWalletConnect = (): UseWalletConnectReturn => {
@@ -28,10 +32,66 @@ export const useWalletConnect = (): UseWalletConnectReturn => {
   const [selectedProvider, setSelectedProvider] = useState<Wallet | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isAutoConnecting, setIsAutoConnecting] = useState(false);
   const [providerList, setProviderList] = useState<Wallet[]>([]);
   const [accounts, setAccounts] = useState<Provider[] | null>(null);
   const [accountListener, setAccountListener] = useState<ListenerCtrl>();
   const [networkListener, setNetworkListener] = useState<ListenerCtrl>();
+  const [shouldOpenBearbyModal, setShouldOpenBearbyModal] = useState(false);
+
+  // Auto-reconnect to saved wallet
+  const autoReconnect = useCallback(async (provider: Wallet) => {
+    setIsAutoConnecting(true);
+    try {
+      // Verify network first
+      const networkInfo = await provider.networkInfos();
+      if (networkInfo.name !== NETWORK) {
+        console.error(
+          `Wrong network. Please switch to ${NETWORK} in your wallet.`,
+        );
+        // Clear saved provider if network is wrong
+        localStorage.removeItem("provider");
+        localStorage.removeItem("connectedAddress");
+        return false;
+      }
+
+      const accounts = await fetchAccounts(provider);
+      if (!accounts || accounts.length === 0) {
+        console.error("No accounts found during auto-reconnect");
+        return false;
+      }
+
+      // Try to reconnect to the saved address, or use the first available
+      const savedAddress = localStorage.getItem("connectedAddress");
+      let targetAccount = accounts[0];
+
+      if (savedAddress) {
+        const foundAccount = accounts.find((acc) => acc.address === savedAddress);
+        if (foundAccount) {
+          targetAccount = foundAccount;
+        }
+      }
+
+      // Create massa-web3 Provider instance
+      setClient(targetAccount);
+      setConnectedAddress(targetAccount.address);
+      setSelectedProvider(provider);
+
+      // Set up listeners for changes
+      setupListeners(provider);
+
+      // Update saved address in case it changed
+      localStorage.setItem("connectedAddress", targetAccount.address);
+
+      console.log(`Auto-reconnected to ${provider.name()} (${targetAccount.address})`);
+      return true;
+    } catch (error) {
+      console.error(`Failed to auto-reconnect to ${provider.name()}:`, error);
+      return false;
+    } finally {
+      setIsAutoConnecting(false);
+    }
+  }, []);
 
   // Initialize providers on mount
   useEffect(() => {
@@ -46,8 +106,21 @@ export const useWalletConnect = (): UseWalletConnectReturn => {
         if (savedProvider && providers.length > 0) {
           const provider = providers.find((p) => p.name() === savedProvider);
           if (provider) {
-            setSelectedProvider(provider);
-            await fetchAccounts(provider);
+            const reconnected = await autoReconnect(provider);
+            if (!reconnected) {
+              // If reconnection failed, check if it was Bearby and set flag to open modal
+              if (provider.name() === WalletName.Bearby) {
+                setShouldOpenBearbyModal(true);
+              }
+            }
+          } else {
+            // Provider not found, check if we should suggest Bearby
+            const bearbyProvider = providers.find((p) => p.name() === WalletName.Bearby);
+            if (savedProvider === WalletName.Bearby && !bearbyProvider) {
+              console.log("Bearby wallet not detected but was previously connected");
+            } else if (savedProvider === WalletName.Bearby && bearbyProvider) {
+              setShouldOpenBearbyModal(true);
+            }
           }
         }
       } catch (error) {
@@ -58,7 +131,7 @@ export const useWalletConnect = (): UseWalletConnectReturn => {
     };
 
     initializeProviders();
-  }, []);
+  }, [autoReconnect]);
 
   // Fetch accounts from a provider
   const fetchAccounts = async (
@@ -143,8 +216,9 @@ export const useWalletConnect = (): UseWalletConnectReturn => {
           // Set up listeners for changes
           setupListeners(provider);
 
-          // Save provider preference
+          // Save provider preference and connected address
           localStorage.setItem("provider", provider.name());
+          localStorage.setItem("connectedAddress", accounts[0].address);
 
           return;
         } catch (providerError) {
@@ -178,6 +252,7 @@ export const useWalletConnect = (): UseWalletConnectReturn => {
 
     // Clear local storage
     localStorage.removeItem("provider");
+    localStorage.removeItem("connectedAddress");
 
     // Reset state
     setClient(null);
@@ -186,6 +261,7 @@ export const useWalletConnect = (): UseWalletConnectReturn => {
     setAccounts(null);
     setAccountListener(undefined);
     setNetworkListener(undefined);
+    setShouldOpenBearbyModal(false);
   }, [selectedProvider, accountListener, networkListener]);
 
   const switchAccount = useCallback(
@@ -202,6 +278,9 @@ export const useWalletConnect = (): UseWalletConnectReturn => {
 
         setClient(targetAccount);
         setConnectedAddress(address);
+
+        // Save the new address
+        localStorage.setItem("connectedAddress", address);
       } catch (error) {
         console.error("Account switch error:", error);
         console.error("Failed to switch account");
@@ -212,6 +291,21 @@ export const useWalletConnect = (): UseWalletConnectReturn => {
     [selectedProvider, accounts],
   );
 
+  // Function to handle Bearby modal opening
+  const openBearbyModal = useCallback(() => {
+    const bearbyProvider = providerList.find((p) => p.name() === WalletName.Bearby);
+    if (bearbyProvider) {
+      setShouldOpenBearbyModal(true);
+      return true;
+    }
+    return false;
+  }, [providerList]);
+
+  // Function to dismiss Bearby modal
+  const dismissBearbyModal = useCallback(() => {
+    setShouldOpenBearbyModal(false);
+  }, []);
+
   return {
     client,
     connectedAddress,
@@ -219,10 +313,14 @@ export const useWalletConnect = (): UseWalletConnectReturn => {
     isConnected: !!connectedAddress,
     isConnecting,
     isLoading,
+    isAutoConnecting,
+    shouldOpenBearbyModal,
     connectWallet,
     disconnectWallet,
     switchAccount,
     providerList,
     accounts,
+    openBearbyModal,
+    dismissBearbyModal,
   };
 };

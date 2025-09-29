@@ -21,9 +21,13 @@ const AccountProvider: React.FC<AccountProviderProps> = ({ children }) => {
     isConnected,
     isConnecting,
     isLoading: walletLoading,
+    isAutoConnecting,
+    shouldOpenBearbyModal,
     connectWallet,
     disconnectWallet,
     switchAccount,
+    openBearbyModal,
+    dismissBearbyModal,
   } = useWalletConnect();
 
   const {
@@ -68,8 +72,12 @@ const AccountProvider: React.FC<AccountProviderProps> = ({ children }) => {
     connectWallet,
     disconnectWallet,
     refetch,
+    openBearbyModal,
+    dismissBearbyModal,
     isLoading: walletLoading || balancesLoading,
     isConnecting,
+    isAutoConnecting,
+    shouldOpenBearbyModal,
   };
 
   return (
