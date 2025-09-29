@@ -1,19 +1,20 @@
-import React, { useEffect, useState } from 'react';
+import React, { useContext } from 'react';
 import {
   faTimes,
   faWallet,
   faExternalLinkAlt,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { getWallets, type Wallet } from '@massalabs/wallet-provider';
+import type { Wallet } from '@massalabs/wallet-provider';
 import Button from 'components/Button';
 import Portal from 'components/Portal';
+import { AccountWrapperContext } from 'context/AccountWrapperContext';
 import './index.scss';
 
 interface WalletConnectModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConnect: () => Promise<void>;
+  onConnect: (provider: Wallet) => Promise<void>;
   isConnecting: boolean;
 }
 
@@ -23,25 +24,9 @@ const WalletConnectModal: React.FC<WalletConnectModalProps> = ({
   onConnect,
   isConnecting,
 }) => {
-  const [availableProviders, setAvailableProviders] = useState<Wallet[]>([]);
-  const [loadingProviders, setLoadingProviders] = useState(true);
-
-  useEffect(() => {
-    if (isOpen) {
-      const fetchProviders = async () => {
-        try {
-          const providersList = await getWallets();
-          setAvailableProviders(providersList);
-        } catch (error) {
-          console.error('Failed to fetch providers:', error);
-        } finally {
-          setLoadingProviders(false);
-        }
-      };
-
-      fetchProviders();
-    }
-  }, [isOpen]);
+  const { providerList, isLoading } = useContext(AccountWrapperContext);
+  const availableProviders = providerList;
+  const loadingProviders = isLoading;
 
   const getWalletIcon = (providerName: string) => {
     // You can add specific wallet icons here
@@ -88,7 +73,7 @@ const WalletConnectModal: React.FC<WalletConnectModalProps> = ({
                   <div
                     key={index}
                     className="wallet-provider"
-                    onClick={isConnecting ? undefined : onConnect}
+                    onClick={isConnecting ? undefined : () => onConnect(provider)}
                   >
                     <div className="wallet-provider__icon">
                       <FontAwesomeIcon icon={getWalletIcon(provider.name())} />

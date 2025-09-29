@@ -57,8 +57,8 @@ const Header: React.FC = () => {
     setShowWalletModal(true);
   };
 
-  const handleWalletConnect = async () => {
-    await connectWallet();
+  const handleWalletConnect = async (provider: any) => {
+    await connectWallet(provider);
     setShowWalletModal(false);
   };
 

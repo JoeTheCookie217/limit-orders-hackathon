@@ -26,6 +26,7 @@ const AccountProvider: React.FC<AccountProviderProps> = ({ children }) => {
     connectWallet,
     disconnectWallet,
     switchAccount,
+    providerList,
     openBearbyModal,
     dismissBearbyModal,
   } = useWalletConnect();
@@ -67,6 +68,7 @@ const AccountProvider: React.FC<AccountProviderProps> = ({ children }) => {
     connectedAddress,
     selectedProvider,
     isConnected,
+    providerList,
     tokensInfo,
     balances,
     connectWallet,

@@ -43,18 +43,6 @@ export const useWalletConnect = (): UseWalletConnectReturn => {
   const autoReconnect = useCallback(async (provider: Wallet) => {
     setIsAutoConnecting(true);
     try {
-      // Verify network first
-      const networkInfo = await provider.networkInfos();
-      if (networkInfo.name !== NETWORK) {
-        console.error(
-          `Wrong network. Please switch to ${NETWORK} in your wallet.`,
-        );
-        // Clear saved provider if network is wrong
-        localStorage.removeItem("provider");
-        localStorage.removeItem("connectedAddress");
-        return false;
-      }
-
       const accounts = await fetchAccounts(provider);
       if (!accounts || accounts.length === 0) {
         console.error("No accounts found during auto-reconnect");
@@ -171,16 +159,15 @@ export const useWalletConnect = (): UseWalletConnectReturn => {
 
     const netListener = provider.listenNetworkChanges((network) => {
       if (network.name !== NETWORK) {
-        console.error(
-          `Wrong network. Please switch to ${NETWORK} in your wallet.`,
+        console.warn(
+          `Network changed to ${network.name}. Transactions will require ${NETWORK}.`,
         );
-        disconnectWallet();
       }
     });
     setNetworkListener(netListener);
   };
 
-  const connectWallet = useCallback(async () => {
+  const connectWallet = useCallback(async (specificProvider?: Wallet) => {
     if (isConnecting) return;
 
     setIsConnecting(true);
@@ -193,17 +180,14 @@ export const useWalletConnect = (): UseWalletConnectReturn => {
         return;
       }
 
-      // Try to connect to the first available provider
-      for (const provider of providerList) {
+      // If a specific provider is given, only try that one
+      const providersToTry = specificProvider ? [specificProvider] : providerList;
+
+      // Try to connect to the provider(s)
+      for (const provider of providersToTry) {
         try {
-          // Verify network first
-          const networkInfo = await provider.networkInfos();
-          if (networkInfo.name !== NETWORK) {
-            console.error(
-              `Wrong network. Please switch to ${NETWORK} in your wallet.`,
-            );
-            continue;
-          }
+          // Call provider.connect() to open the wallet popup (important for Bearby)
+          await provider.connect();
 
           const accounts = await fetchAccounts(provider);
           if (!accounts || accounts.length === 0) continue;

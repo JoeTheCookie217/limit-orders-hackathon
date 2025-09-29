@@ -90,8 +90,16 @@ export const useSendTransaction = (
       if (selectedProvider) {
         const networkInfo = await selectedProvider.networkInfos();
         if (networkInfo.name !== NETWORK) {
-          console.error(
-            `Wrong network selected. Please switch your wallet to ${NETWORK}.`,
+          const errorMsg = `Wrong network detected (${networkInfo.name}). Please switch your wallet to ${NETWORK} to submit transactions.`;
+          console.error(errorMsg);
+          toast.error(
+            <div>
+              <div style={{ fontWeight: 'bold' }}>Network Error</div>
+              <div style={{ fontSize: '12px', marginTop: '4px' }}>
+                {errorMsg}
+              </div>
+            </div>,
+            { autoClose: 5000 }
           );
           setIsConfirmPending(false);
           return;

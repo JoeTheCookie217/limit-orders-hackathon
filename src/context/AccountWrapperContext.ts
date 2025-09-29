@@ -1,5 +1,6 @@
 import { createContext } from 'react';
 import type { Provider } from '@massalabs/massa-web3';
+import type { Wallet } from '@massalabs/wallet-provider';
 import type { TokenInfo } from 'utils/types';
 
 export interface AccountWrapperContextType {
@@ -8,13 +9,14 @@ export interface AccountWrapperContextType {
   connectedAddress: string | null;
   selectedProvider: any | null; // Temporary fix for IProvider import issue
   isConnected: boolean;
+  providerList: Wallet[];
 
   // Account data
   tokensInfo: TokenInfo[];
   balances: Map<string, bigint>;
 
   // Actions
-  connectWallet: () => Promise<void>;
+  connectWallet: (provider?: Wallet) => Promise<void>;
   disconnectWallet: () => void;
   refetch: (keys?: string[]) => void;
   openBearbyModal: () => boolean;
@@ -32,6 +34,7 @@ export const AccountWrapperContext = createContext<AccountWrapperContextType>({
   connectedAddress: null,
   selectedProvider: null,
   isConnected: false,
+  providerList: [],
   tokensInfo: [],
   balances: new Map(),
   connectWallet: async () => {},
