@@ -1,9 +1,9 @@
-import React, { useCallback, useContext } from 'react';
+import React, { useCallback, useContext } from "react";
 import {
   AccountWrapperContext,
   type AccountWrapperContextType,
-} from 'context/AccountWrapperContext';
-import { SettingsContext } from 'context/SettingsContext';
+} from "context/AccountWrapperContext";
+import { SettingsContext } from "context/SettingsContext";
 import { useFetchBalances } from "hooks/useFetchBalances";
 import { useWalletConnect } from "hooks/useWalletConnect";
 
@@ -45,8 +45,6 @@ const AccountProvider: React.FC<AccountProviderProps> = ({ children }) => {
 
   const refetch = useCallback(
     (keys?: string[]) => {
-      console.log('Refetching data:', keys);
-
       if (!keys || keys.length === 0) {
         // Refetch everything
         refetchBalances();
@@ -54,13 +52,13 @@ const AccountProvider: React.FC<AccountProviderProps> = ({ children }) => {
       }
 
       // Refetch specific data types
-      if (keys.includes('balances')) {
+      if (keys.includes("balances")) {
         refetchBalances();
       }
 
       // Add more specific refetch logic here as needed
     },
-    [refetchBalances],
+    [refetchBalances]
   );
 
   const contextValue: AccountWrapperContextType = {
