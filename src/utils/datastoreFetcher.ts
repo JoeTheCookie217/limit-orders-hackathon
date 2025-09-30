@@ -169,9 +169,9 @@ export interface EnrichedOrder extends Omit<BackendOrder, 'timestamp'> {
 
 /**
  * Calculate amount out from amount in and price
+ * Simplified calculation following Dusa's implementation
  * @param amountIn - Amount in as string
- * @param price - Price as number
- * @param isSellOrder - Whether it's a sell order
+ * @param price - Price as number (already adjusted for decimals)
  * @param decimalsIn - Decimals of input token
  * @param decimalsOut - Decimals of output token
  * @returns Amount out as bigint
@@ -179,44 +179,19 @@ export interface EnrichedOrder extends Omit<BackendOrder, 'timestamp'> {
 const calculateAmountOut = (
   amountIn: string,
   price: number,
-  isSellOrder: boolean,
   decimalsIn: number,
   decimalsOut: number,
 ): bigint => {
+  if (!price || !isFinite(price)) return 0n;
+
   try {
-    const amountInBigint = BigInt(amountIn);
+    // Simple calculation: amountOut = amountIn * price / 10^(decimalsIn - decimalsOut)
+    const numerator = Number(amountIn) * price;
+    const denom = 10 ** (decimalsIn - decimalsOut);
+    const raw = Math.floor(numerator / denom);
 
-    // Use a high precision for price calculations
-    const PRICE_PRECISION = 1e18;
-    const priceBigint = BigInt(Math.floor(price * PRICE_PRECISION));
-
-    if (priceBigint === 0n || amountInBigint === 0n) {
-      return 0n;
-    }
-
-    let amountOutRaw: bigint;
-
-    if (isSellOrder) {
-      // Sell order: amountOut = amountIn * price
-      amountOutRaw = (amountInBigint * priceBigint) / BigInt(PRICE_PRECISION);
-    } else {
-      // Buy order: amountOut = amountIn / price
-      amountOutRaw = (amountInBigint * BigInt(PRICE_PRECISION)) / priceBigint;
-    }
-
-    // Adjust for decimal differences between tokens
-    const decimalDiff = decimalsOut - decimalsIn;
-
-    if (decimalDiff > 0) {
-      // Output token has more decimals
-      return amountOutRaw * BigInt(10 ** decimalDiff);
-    } else if (decimalDiff < 0) {
-      // Input token has more decimals
-      return amountOutRaw / BigInt(10 ** (-decimalDiff));
-    } else {
-      // Same decimals
-      return amountOutRaw;
-    }
+    if (!isFinite(raw)) return 0n;
+    return BigInt(raw);
   } catch (error) {
     console.warn("Error calculating amountOut:", error);
     return 0n;
@@ -247,11 +222,19 @@ export const enrichOrderWithTokens = async (
       throw new Error(`Pool not found for address: ${order.poolAddress}`);
     }
 
-    const price = getPriceFromId(order.binId, pool.binStep);
+    // Calculate price with decimal adjustment - following Dusa's implementation
+    const basePriceFromProtocol = getPriceFromId(order.binId, pool.binStep);
+
+    // Adjust price based on token decimals and order type
+    // For sell orders: price = basePrice * 10^(tokenIn.decimals - tokenOut.decimals)
+    // For buy orders: price = (1/basePrice) * 10^(tokenIn.decimals - tokenOut.decimals)
+    const price = order.isSellOrder
+      ? basePriceFromProtocol * 10 ** (tokenIn.decimals - tokenOut.decimals)
+      : (1 / basePriceFromProtocol) * 10 ** (tokenIn.decimals - tokenOut.decimals);
+
     const amountOut = calculateAmountOut(
       order.amountIn,
       price,
-      order.isSellOrder,
       tokenIn.decimals,
       tokenOut.decimals,
     );

@@ -14,8 +14,7 @@ import LimitOrderPoolsModal from "components/LimitOrderPoolsModal";
 import PriceInput from "components/PriceInput";
 import { AccountWrapperContext } from "context/AccountWrapperContext";
 import { SettingsContext } from "context/SettingsContext";
-import { useAdvancedManageOrders } from "hooks/useAdvancedManageOrders";
-import { useManageOrders } from "hooks/useManageOrders";
+import { useManageLimitOrders } from "hooks/useManageLimitOrders";
 import { validateLimitOrderSupport } from "utils/methods";
 import { MASSA, USDC } from "utils/tokens";
 import type { Token } from "utils/types";
@@ -28,8 +27,8 @@ const LimitOrderCard: React.FC = () => {
   const { limitOrderSlippage } = useContext(SettingsContext);
 
   // Form state - tokens are now locked
-  const fromToken = MASSA;
-  const toToken = USDC;
+  const fromToken = USDC;
+  const toToken = MASSA;
   const [inputAmount, setInputAmount] = useState("");
 
   // UI state - token selector removed
@@ -69,7 +68,7 @@ const LimitOrderCard: React.FC = () => {
   const amountIn =
     inputAmount && fromToken ? parseUnits(inputAmount, fromToken.decimals) : 0n;
 
-  // Advanced order management hooks
+  // Unified order management hook
   const {
     // Pool and validation info
     limitOrderPool,
@@ -113,7 +112,13 @@ const LimitOrderCard: React.FC = () => {
     // Date handling - not used in UI but kept for order creation
     date,
     expiryDate,
-  } = useAdvancedManageOrders({
+
+    // Order management
+    createLimitOrder,
+    isCreatingOrder,
+    orderError,
+    clearError,
+  } = useManageLimitOrders({
     userAddress: connectedAddress || undefined,
     token0: fromToken,
     token1: toToken,
@@ -127,10 +132,6 @@ const LimitOrderCard: React.FC = () => {
       refetch(["balances"]);
     },
   });
-
-  // Order management hooks
-  const { createLimitOrder, isCreatingOrder, orderError, clearError } =
-    useManageOrders();
 
   // Use the advanced error or fallback to original error
   const finalLimitOrderError = advancedLimitOrderError || limitOrderError;
@@ -151,29 +152,23 @@ const LimitOrderCard: React.FC = () => {
     const parsedAmount = parseFloat(inputAmount);
     const isValidAmount = !isNaN(parsedAmount) && parsedAmount > 0;
 
+    // Validate that we have a valid price and IDs
+    const isPriceValid =
+      activeId !== undefined &&
+      targetId !== undefined &&
+      (isSellOrder ? targetId < activeId : targetId > activeId);
+
     const isValid =
       connectedAddress &&
       inputAmount &&
       isValidAmount &&
       !invalidAmountLimitOrder &&
       !advancedLimitOrderError &&
+      isPriceValid &&
       (isValidAmount
         ? BigInt(Math.floor(parsedAmount * 10 ** fromToken.decimals)) <=
           fromBalance
         : false);
-
-    console.log({
-      connectedAddress,
-      inputAmount,
-      parse: isValidAmount,
-      invalidAmountLimitOrder,
-      advancedLimitOrderError,
-      balanceCheck: isValidAmount
-        ? BigInt(Math.floor(parsedAmount * 10 ** fromToken.decimals)) <=
-          fromBalance
-        : false,
-      isValid,
-    });
 
     return isValid;
   };
@@ -192,7 +187,6 @@ const LimitOrderCard: React.FC = () => {
       limitPrice: priceLODisplayed || "0",
       orderType: isSellOrder ? "sell" : "buy",
     });
-    console.log({});
 
     if (success) {
       // Clear form on successful order creation
@@ -378,24 +372,6 @@ const LimitOrderCard: React.FC = () => {
             </div>
           )}
 
-        {/* Order Details */}
-        {isFormValid() && (
-          <div className="order-details">
-            <div className="order-details__row">
-              <span>Order Type</span>
-              <span
-                className={`order-type order-type--${isSellOrder ? "sell" : "buy"}`}
-              >
-                {isSellOrder ? "SELL" : "BUY"}
-              </span>
-            </div>
-            <div className="order-details__row">
-              <span>Slippage Tolerance</span>
-              <span>{(limitOrderSlippage / 100).toFixed(2)}%</span>
-            </div>
-          </div>
-        )}
-
         {/* Submit Button */}
         <Button
           onClick={handleCreateOrder}
@@ -404,9 +380,7 @@ const LimitOrderCard: React.FC = () => {
           fullWidth
           size="lg"
         >
-          {isCreatingOrder
-            ? "Creating Order..."
-            : `Create ${isSellOrder ? "SELL" : "BUY"} Order`}
+          {isCreatingOrder ? "Creating Order..." : "Create Order"}
         </Button>
       </div>
 
