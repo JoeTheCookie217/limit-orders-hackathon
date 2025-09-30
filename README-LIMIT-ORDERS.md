@@ -38,7 +38,7 @@ src/
 │   ├── LimitOrderCard/             # Interface principale
 │   └── Skeleton/                   # Composant de loading
 ├── hooks/
-│   ├── useAdvancedManageOrders.ts  # Hook principal (copié de l'interface)
+│   ├── useManageLimitOrders.ts     # Hook unifié (prix + création ordres)
 │   └── useFetchOrders.ts           # Récupération ordres backend
 └── utils/
     ├── methods.ts                  # Utilitaires prix/binId
@@ -48,14 +48,16 @@ src/
 
 ### Hooks Principaux
 
-#### `useAdvancedManageOrders`
+#### `useManageLimitOrders`
 
-Hook principal copié et adapté de l'interface Dusa avec :
+Hook unifié qui combine toute la logique des limit orders :
 
 - Gestion des prix avec ajustement décimal
 - Auto-calcul des montants basé sur targetPrice
 - Logique de validation des ordres (above/below market)
 - Intégration avec la logique allowance
+- Création et gestion des ordres
+- État des ordres pending/completed
 
 #### `useFetchOrders`
 
