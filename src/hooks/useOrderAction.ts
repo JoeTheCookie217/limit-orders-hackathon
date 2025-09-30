@@ -2,11 +2,16 @@ import { useState, useCallback, useContext } from "react";
 import { AccountWrapperContext } from "context/AccountWrapperContext";
 import { useSendTransaction } from "hooks/useSendTransaction";
 import eventEmitter from "utils/eventEmitter";
-import { setPendingLimitOrderDelete } from 'utils/storage';
+import {
+  setPendingLimitOrderDelete,
+  setPendingLimitOrderDeleteRemove,
+  setLocallyCompletedOrder,
+  type LocallyCompletedOrder,
+} from "utils/storage";
 import {
   buildCancelOrderTx,
   buildClaimOrderTx,
-} from 'utils/transactionBuilder';
+} from "utils/transactionBuilder";
 import type { Order } from "utils/types";
 
 export type OrderActionType = "cancel" | "claim";
@@ -15,6 +20,7 @@ interface UseOrderActionReturn {
   // Loading states
   isProcessing: boolean;
   actionInProgress: OrderActionType | null;
+  processingOrderId: string | null;
 
   // Actions
   cancelOrder: (order: Order) => Promise<boolean>;
@@ -31,17 +37,39 @@ export const useOrderAction = (): UseOrderActionReturn => {
   // State
   const [actionInProgress, setActionInProgress] =
     useState<OrderActionType | null>(null);
+  const [processingOrderId, setProcessingOrderId] = useState<string | null>(
+    null
+  );
   const [actionError, setActionError] = useState<string | null>(null);
 
   // State for current order being processed
   const [currentOrder, setCurrentOrder] = useState<Order | null>(null);
 
+  // Helper to save locally completed order for immediate UI display
+  const saveLocallyCompletedOrder = useCallback(
+    (status: "CLAIMED" | "CANCELED") => {
+      if (!connectedAddress || !currentOrder) return;
+
+      const localOrder: LocallyCompletedOrder = {
+        id: parseInt(currentOrder.id),
+        limitOrderAddress: currentOrder.limitOrderAddress,
+        status,
+        timestamp: new Date().toISOString(),
+        orderData: { ...currentOrder, status }, // Store complete order data
+      };
+
+      setLocallyCompletedOrder(connectedAddress, localOrder);
+      eventEmitter.emit("localOrderCompleted");
+    },
+    [connectedAddress, currentOrder]
+  );
+
   // Transaction hooks
   const { submitTx: submitCancelOrder, pending: cancelPending } =
     useSendTransaction({
       onTxConfirmed: () => {
-        console.log("Cancel order transaction confirmed");
         setActionInProgress(null);
+        setProcessingOrderId(null);
 
         // Add cancelled order to localStorage for immediate UI update
         if (currentOrder && connectedAddress) {
@@ -49,10 +77,12 @@ export const useOrderAction = (): UseOrderActionReturn => {
             id: parseInt(currentOrder.id),
             scAddress: currentOrder.limitOrderAddress,
           });
-          console.log(
-            "Added cancelled order to localStorage:",
-            currentOrder.id,
-          );
+
+          // Emit event immediately to hide order from active list
+          eventEmitter.emit("updateOrdersRemoving");
+
+          // Save as locally completed for history display
+          saveLocallyCompletedOrder("CANCELED");
         }
 
         // Clear current order
@@ -69,8 +99,21 @@ export const useOrderAction = (): UseOrderActionReturn => {
   const { submitTx: submitClaimOrder, pending: claimPending } =
     useSendTransaction({
       onTxConfirmed: () => {
-        console.log("Claim order transaction confirmed");
         setActionInProgress(null);
+
+        // Add claimed order to localStorage to hide from active orders immediately
+        if (currentOrder && connectedAddress) {
+          setPendingLimitOrderDelete(connectedAddress, {
+            id: parseInt(currentOrder.id),
+            scAddress: currentOrder.limitOrderAddress,
+          });
+
+          // ✅ Emit event immediately to hide order from active list
+          eventEmitter.emit("updateOrdersRemoving");
+
+          // Save as locally completed for history display
+          saveLocallyCompletedOrder("CLAIMED");
+        }
 
         // Refetch data
         setTimeout(() => {
@@ -97,15 +140,10 @@ export const useOrderAction = (): UseOrderActionReturn => {
 
       setActionError(null);
       setActionInProgress("cancel");
+      setProcessingOrderId(order.id);
       setCurrentOrder(order); // Store the order being cancelled
 
       try {
-        console.log("Cancelling order:", {
-          orderId: order.id,
-          limitOrderAddress: order.limitOrderAddress,
-          tokenIn: order.tokenIn?.symbol,
-        });
-
         // Determine if this is a MAS order
         const isMasOrder = order.tokenIn?.symbol === "MAS";
 
@@ -113,27 +151,27 @@ export const useOrderAction = (): UseOrderActionReturn => {
         const cancelTx = buildCancelOrderTx(
           parseInt(order.id),
           order.limitOrderAddress,
-          isMasOrder,
+          isMasOrder
         );
 
         // Submit transaction
         await submitCancelOrder(cancelTx);
 
-        console.log("Cancel order transaction submitted");
         return true;
       } catch (error) {
         console.error("Failed to cancel order:", error);
         setActionError(
           error instanceof Error
             ? error.message
-            : "Failed to cancel order. Please try again.",
+            : "Failed to cancel order. Please try again."
         );
         setActionInProgress(null);
+        setProcessingOrderId(null);
         setCurrentOrder(null); // Clear current order on error
         return false;
       }
     },
-    [connectedAddress, submitCancelOrder],
+    [connectedAddress, submitCancelOrder]
   );
 
   // Claim order
@@ -153,12 +191,6 @@ export const useOrderAction = (): UseOrderActionReturn => {
       setActionInProgress("claim");
 
       try {
-        console.log("Claiming order:", {
-          orderId: order.id,
-          limitOrderAddress: order.limitOrderAddress,
-          tokenOut: order.tokenOut?.symbol,
-        });
-
         // Determine if this is a MAS order (for the output token)
         const isMasOrder = order.tokenOut?.symbol === "MAS";
 
@@ -166,7 +198,7 @@ export const useOrderAction = (): UseOrderActionReturn => {
         const claimTx = buildClaimOrderTx(
           parseInt(order.id),
           order.limitOrderAddress,
-          isMasOrder,
+          isMasOrder
         );
 
         // Submit transaction
@@ -177,13 +209,13 @@ export const useOrderAction = (): UseOrderActionReturn => {
         setActionError(
           error instanceof Error
             ? error.message
-            : "Failed to claim order. Please try again.",
+            : "Failed to claim order. Please try again."
         );
         setActionInProgress(null);
         return false;
       }
     },
-    [connectedAddress, submitClaimOrder],
+    [connectedAddress, submitClaimOrder]
   );
 
   // Clear error
@@ -195,6 +227,7 @@ export const useOrderAction = (): UseOrderActionReturn => {
     // Loading states
     isProcessing,
     actionInProgress,
+    processingOrderId,
 
     // Actions
     cancelOrder,

@@ -1,12 +1,18 @@
-import React, { useState, useContext } from 'react';
-import type { Provider } from '@massalabs/massa-web3';
-import { toast } from 'react-toastify';
-import { AccountWrapperContext } from 'context/AccountWrapperContext';
-import { NETWORK } from 'utils/config';
+import React, { useState, useContext } from "react";
+import type { Provider } from "@massalabs/massa-web3";
+import { EventDecoder } from "@dusalabs/sdk";
+import { toast } from "react-toastify";
+import { AccountWrapperContext } from "context/AccountWrapperContext";
+import { NETWORK } from "utils/config";
 import eventEmitter from "utils/eventEmitter";
 import { pollAsyncEvents } from "utils/eventPoller";
-import { addRecentTransaction, type RecentTransaction } from 'utils/storage';
-import type { ICallData } from 'utils/types';
+import {
+  addRecentTransaction,
+  setPendingLimitOrderCreation,
+  setPendingLimitOrderDelete,
+  type RecentTransaction,
+} from "utils/storage";
+import type { ICallData } from "utils/types";
 
 interface ExecuteSCData {
   byteCode: Uint8Array;
@@ -33,26 +39,26 @@ const generateTransactionDescription = (data: ICallData): string => {
   const { targetFunction } = data;
 
   switch (targetFunction) {
-    case 'addLimitOrder':
-    case 'addLimitOrderMas':
-      return 'Create limit order';
-    case 'cancelOrder':
-    case 'cancelOrderMas':
-      return 'Cancel limit order';
-    case 'claimOrder':
-    case 'claimOrderMas':
-      return 'Claim order tokens';
-    case 'increaseAllowance':
-      return 'Approve token spending';
-    case 'transfer':
-      return 'Transfer tokens';
+    case "addLimitOrder":
+    case "addLimitOrderMas":
+      return "Create limit order";
+    case "cancelOrder":
+    case "cancelOrderMas":
+      return "Cancel limit order";
+    case "claimOrder":
+    case "claimOrderMas":
+      return "Claim order tokens";
+    case "increaseAllowance":
+      return "Approve token spending";
+    case "transfer":
+      return "Transfer tokens";
     default:
-      return 'Transaction';
+      return "Transaction";
   }
 };
 
 export const useSendTransaction = (
-  props: SendTransactionProps,
+  props: SendTransactionProps
 ): UseSendTransactionReturn => {
   const [txHash, setTxHash] = useState<string>();
   const [txError, setTxError] = useState<string>();
@@ -71,13 +77,13 @@ export const useSendTransaction = (
 
   const submitTx = async (_data?: ICallData) => {
     if (!client || !signerAddress) {
-      console.error('Please connect your wallet first');
+      console.error("Please connect your wallet first");
       return;
     }
 
     const data = _data || props.data;
-    if (!data || !('targetAddress' in data)) {
-      console.error('Invalid transaction data');
+    if (!data || !("targetAddress" in data)) {
+      console.error("Invalid transaction data");
       return;
     }
 
@@ -94,8 +100,8 @@ export const useSendTransaction = (
           console.error(errorMsg);
           toast.error(
             <div>
-              <div style={{ fontWeight: 'bold' }}>Network Error</div>
-              <div style={{ fontSize: '12px', marginTop: '4px' }}>
+              <div style={{ fontWeight: "bold" }}>Network Error</div>
+              <div style={{ fontSize: "12px", marginTop: "4px" }}>
                 {errorMsg}
               </div>
             </div>,
@@ -106,7 +112,7 @@ export const useSendTransaction = (
         }
       }
 
-      console.log('Submitting transaction:', {
+      console.log("Submitting transaction:", {
         target: data.targetAddress,
         function: data.targetFunction,
         value: (data.coins || 0n).toString(),
@@ -134,22 +140,22 @@ export const useSendTransaction = (
         hash: operationId,
         description,
         timestamp: Date.now(),
-        status: 'pending',
+        status: "pending",
       };
       addRecentTransaction(recentTx);
 
       // Show pending toast
-      toast.info(
+      toast.loading(
         <div>
           <div>{description}</div>
-          <div style={{ fontSize: '12px', opacity: 0.8 }}>
+          <div style={{ fontSize: "12px", opacity: 0.8 }}>
             Waiting for confirmation...
           </div>
         </div>,
         {
           autoClose: false,
           toastId: operationId,
-        },
+        }
       );
 
       // Poll for events
@@ -157,7 +163,7 @@ export const useSendTransaction = (
         const eventResult = await pollAsyncEvents(client, operationId);
 
         if (eventResult.isError) {
-          throw new Error('Transaction failed during execution');
+          throw new Error("Transaction failed during execution");
         }
 
         const eventStrings = eventResult.events.map((e) => e.data);
@@ -170,7 +176,7 @@ export const useSendTransaction = (
           hash: operationId,
           description,
           timestamp: Date.now(),
-          status: 'confirmed',
+          status: "confirmed",
         };
         addRecentTransaction(successTx);
 
@@ -179,11 +185,67 @@ export const useSendTransaction = (
         toast.success(
           <div>
             <div>{description}</div>
-            <div style={{ fontSize: '12px', opacity: 0.8 }}>
+            <div style={{ fontSize: "12px", opacity: 0.8 }}>
               Transaction confirmed
             </div>
-          </div>,
+          </div>
         );
+
+        // Handle transaction-specific post-confirmation logic
+        if (data && "targetFunction" in data) {
+          const { targetFunction } = data;
+
+          // Order creation - extract real order ID from blockchain events
+          if (
+            targetFunction === "addLimitOrder" ||
+            targetFunction === "addLimitOrderMas"
+          ) {
+            // Find the limit order event emitted by the smart contract
+            const limitOrderEvent = eventStrings.find((e) =>
+              e.startsWith("NEW_LIMIT_ORDER:")
+            );
+            const loSCEvent = eventStrings.find((e) =>
+              e.startsWith("DEPOSITED:")
+            );
+
+            if (limitOrderEvent && loSCEvent && signerAddress) {
+              try {
+                // Decode the real order ID from blockchain event
+                const limitOrder =
+                  EventDecoder.decodeLimitOrder(limitOrderEvent);
+                const loSC = EventDecoder.extractParams(loSCEvent)[0];
+
+                if (limitOrder && loSC) {
+                  // Store pending order with REAL ID from blockchain
+                  setPendingLimitOrderCreation(signerAddress, {
+                    id: limitOrder.id, // ✅ Real ID from smart contract
+                    scAddress: loSC,
+                  });
+                  eventEmitter.emit("updateOrdersLoading");
+                }
+              } catch (error) {
+                console.error("Failed to decode limit order event:", error);
+                // Still emit event so UI can refresh
+                eventEmitter.emit("updateOrdersLoading");
+              }
+            } else {
+              // Fallback: emit event even if we couldn't extract ID
+              eventEmitter.emit("updateOrdersLoading");
+            }
+          }
+
+          // Order cancellation/claim - emit event to update removing orders display
+          if (
+            targetFunction === "cancelOrder" ||
+            targetFunction === "cancelOrderMas" ||
+            targetFunction === "claimOrder" ||
+            targetFunction === "claimOrderMas"
+          ) {
+            // Note: The pending deletion is already stored in localStorage by useOrderAction
+            // We just need to emit the event so components can refresh
+            eventEmitter.emit("updateOrdersRemoving");
+          }
+        }
 
         // Execute callback
         if (props.onTxConfirmed) {
@@ -193,8 +255,8 @@ export const useSendTransaction = (
         // Auto-refetch data unless skipped
         if (!props.skipAutoRefetch) {
           setTimeout(() => {
-            refetch(['balances', 'orders']);
-            eventEmitter.emit('transactionConfirmed', {
+            refetch(["balances", "orders"]);
+            eventEmitter.emit("transactionConfirmed", {
               hash: operationId,
               events: eventStrings,
             });
@@ -204,7 +266,7 @@ export const useSendTransaction = (
         const errorMessage =
           confirmError instanceof Error
             ? confirmError.message
-            : 'Transaction confirmation failed';
+            : "Transaction confirmation failed";
 
         setTxError(errorMessage);
         setSuccess(false);
@@ -214,7 +276,7 @@ export const useSendTransaction = (
           hash: operationId,
           description,
           timestamp: Date.now(),
-          status: 'failed',
+          status: "failed",
         };
         addRecentTransaction(failedTx);
 
@@ -223,23 +285,23 @@ export const useSendTransaction = (
         toast.error(
           <div>
             <div>{description}</div>
-            <div style={{ fontSize: '12px', opacity: 0.8 }}>{errorMessage}</div>
-          </div>,
+            <div style={{ fontSize: "12px", opacity: 0.8 }}>{errorMessage}</div>
+          </div>
         );
 
-        console.error('Transaction confirmation error:', confirmError);
+        console.error("Transaction confirmation error:", confirmError);
       }
     } catch (submitError) {
       const errorMessage =
         submitError instanceof Error
           ? submitError.message
-          : 'Failed to submit transaction';
+          : "Failed to submit transaction";
 
       setTxError(errorMessage);
       setSuccess(false);
 
       toast.error(`Transaction failed: ${errorMessage}`);
-      console.error('Transaction submit error:', submitError);
+      console.error("Transaction submit error:", submitError);
     } finally {
       setIsTxPending(false);
       setIsConfirmPending(false);
