@@ -3,15 +3,13 @@ import { AccountWrapperContext } from "context/AccountWrapperContext";
 import {
   enrichOrderWithTokens,
   type EnrichedOrder,
-} from 'utils/datastoreFetcher';
+} from "utils/datastoreFetcher";
 import {
-  getPendingLimitOrderCreation,
-  getPendingLimitOrderDelete,
-  setPendingLimitOrderCreationRemove,
-  setPendingLimitOrderDeleteRemove,
   type PendingLimitOrder,
-} from 'utils/storage';
-import { trpc, type Order } from 'utils/trpc';
+  type LocallyCompletedOrder,
+} from "utils/storage";
+import { trpc, type Order } from "utils/trpc";
+import { useManageOrdersStorage } from "./useManageOrdersStorage";
 
 export interface UseFetchOrdersReturn {
   // Data
@@ -27,6 +25,7 @@ export interface UseFetchOrdersReturn {
   // Pending orders
   ordersLoading: PendingLimitOrder[];
   ordersRemoving: PendingLimitOrder[];
+  locallyCompletedOrders: LocallyCompletedOrder[];
 
   // Actions
   refetch: () => Promise<void>;
@@ -48,10 +47,15 @@ export const useFetchOrders = (): UseFetchOrdersReturn => {
     error,
   } = trpc.getOrders.useQuery(queryParameters, queryOptions);
 
-  console.log({ orderDetails });
-
   // State for enriched orders
   const [orders, setOrders] = useState<EnrichedOrder[] | undefined>(undefined);
+
+  // Use centralized storage management hook with actual orders
+  const { ordersLoading, ordersRemoving, locallyCompletedOrders } =
+    useManageOrdersStorage({
+      userAddress: connectedAddress,
+      orders: orders as any, // Pass enriched orders for cleanup logic
+    });
 
   // Enrich orders when orderDetails changes
   useEffect(() => {
@@ -65,13 +69,18 @@ export const useFetchOrders = (): UseFetchOrdersReturn => {
         // Enrich orders with token information in parallel
         const enrichedOrders = await Promise.all(
           orderDetails.map(async (order) => {
-            return await enrichOrderWithTokens(order);
-          }),
+            // Convert timestamp string to Date before enriching
+            const orderWithDate = {
+              ...order,
+              timestamp: new Date(order.timestamp),
+            };
+            return await enrichOrderWithTokens(orderWithDate);
+          })
         );
 
         setOrders(enrichedOrders);
       } catch (error) {
-        console.error('Error enriching orders:', error);
+        console.error("Error enriching orders:", error);
         // Fallback to basic orders with timestamp conversion
         const fallbackOrders: EnrichedOrder[] = orderDetails.map((order) => ({
           ...order,
@@ -88,15 +97,6 @@ export const useFetchOrders = (): UseFetchOrdersReturn => {
     enrichOrders();
   }, [orderDetails]);
 
-  // Get pending orders from localStorage
-  const ordersLoading = connectedAddress
-    ? getPendingLimitOrderCreation(connectedAddress)
-    : [];
-
-  const ordersRemoving = connectedAddress
-    ? getPendingLimitOrderDelete(connectedAddress)
-    : [];
-
   // Filter active and completed orders
   const activeOrders = useMemo(() => {
     return (
@@ -108,7 +108,7 @@ export const useFetchOrders = (): UseFetchOrdersReturn => {
               order.status === "ACTIVE" &&
               !ordersRemoving.some(
                 (removingOrder) =>
-                  removingOrder.id === order.id &&
+                  String(removingOrder.id) === String(order.id) &&
                   removingOrder.scAddress === order.limitOrderAddress,
               )
             );
@@ -127,78 +127,13 @@ export const useFetchOrders = (): UseFetchOrdersReturn => {
   const completedOrders = useMemo(() => {
     return (
       orders?.filter((order) =>
-        ["EXECUTED", "CANCELLED", "EXPIRED", "CLAIMED"].includes(order.status),
+        ["EXECUTED", "CANCELLED", "EXPIRED", "CLAIMED"].includes(order.status)
       ) || []
     );
   }, [orders]);
 
-  // Clean up pending orders that now exist in backend
-  useEffect(() => {
-    if (
-      orders &&
-      orders.length > 0 &&
-      ordersLoading.length > 0 &&
-      connectedAddress
-    ) {
-      const ordersToRemove: PendingLimitOrder[] = [];
-
-      ordersLoading.forEach((pendingOrder) => {
-        const existsInBackend = orders.some(
-          (order) => order.limitOrderAddress === pendingOrder.scAddress,
-        );
-
-        if (existsInBackend) {
-          ordersToRemove.push(pendingOrder);
-        }
-      });
-
-      if (ordersToRemove.length > 0) {
-        console.log(
-          "🧹 Cleaning up pending orders that are now in backend:",
-          ordersToRemove,
-        );
-        setPendingLimitOrderCreationRemove(connectedAddress, ordersToRemove);
-      }
-    }
-  }, [orders, ordersLoading, connectedAddress]);
-
-  // Clean up cancelled orders that are no longer active in backend or have been processed
-  useEffect(() => {
-    if (orders && ordersRemoving.length > 0 && connectedAddress) {
-      const ordersToCleanup: PendingLimitOrder[] = [];
-
-      ordersRemoving.forEach((removingOrder) => {
-        const orderInBackend = orders.find(
-          (order) =>
-            order.id.toString() === removingOrder.id.toString() &&
-            order.limitOrderAddress === removingOrder.scAddress,
-        );
-
-        // Remove from localStorage if:
-        // 1. Order no longer exists in backend (fully processed)
-        // 2. Order status is CANCELLED or CLAIMED (processed)
-        if (
-          !orderInBackend ||
-          (orderInBackend &&
-            ['CANCELLED', 'CLAIMED', 'EXECUTED'].includes(
-              orderInBackend.status,
-            ))
-        ) {
-          ordersToCleanup.push(removingOrder);
-        }
-      });
-
-      if (ordersToCleanup.length > 0) {
-        console.log(
-          "🧹 Cleaning up processed cancelled orders:",
-          ordersToCleanup,
-        );
-        setPendingLimitOrderDeleteRemove(connectedAddress, ordersToCleanup);
-      }
-    }
-  }, [orders, ordersRemoving, connectedAddress]);
-
-  console.log({ orders });
+  // Note: Cleanup logic is now handled by useManageOrdersStorage hook
+  // It uses dual-field matching (id + scAddress) to prevent premature cleanup
 
   return {
     // Data
@@ -211,9 +146,10 @@ export const useFetchOrders = (): UseFetchOrdersReturn => {
     isFetched,
     error: error?.message || null,
 
-    // Pending orders
+    // Pending orders (from storage hook)
     ordersLoading,
     ordersRemoving,
+    locallyCompletedOrders,
 
     // Actions
     refetch: async () => {

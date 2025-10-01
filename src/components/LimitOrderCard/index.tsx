@@ -6,24 +6,17 @@ import React, {
   useEffect,
 } from "react";
 import { Fraction, parseUnits } from "@dusalabs/sdk";
-import {
-  faChevronDown,
-  faExchangeAlt,
-  faSearch,
-  faTimes,
-} from "@fortawesome/free-solid-svg-icons";
+import { faExchangeAlt } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import Button from "components/Button";
 import Input from "components/Input";
 import LimitOrderPoolsModal from "components/LimitOrderPoolsModal";
-import Portal from "components/Portal";
 import PriceInput from "components/PriceInput";
 import { AccountWrapperContext } from "context/AccountWrapperContext";
 import { SettingsContext } from "context/SettingsContext";
-import { useAdvancedManageOrders } from "hooks/useAdvancedManageOrders";
-import { useManageOrders } from "hooks/useManageOrders";
+import { useManageLimitOrders } from "hooks/useManageLimitOrders";
 import { validateLimitOrderSupport } from "utils/methods";
-import { MASSA, USDC, tokens, tags, tokenToTags } from "utils/tokens";
+import { MASSA, USDC } from "utils/tokens";
 import type { Token } from "utils/types";
 import "./index.scss";
 
@@ -33,15 +26,12 @@ const LimitOrderCard: React.FC = () => {
   );
   const { limitOrderSlippage } = useContext(SettingsContext);
 
-  // Form state
-  const [fromToken, setFromToken] = useState<Token>(MASSA);
-  const [toToken, setToToken] = useState<Token>(USDC);
+  // Form state - tokens are now locked
+  const fromToken = USDC;
+  const toToken = MASSA;
   const [inputAmount, setInputAmount] = useState("");
 
-  // UI state
-  const [showTokenSelector, setShowTokenSelector] = useState<
-    "from" | "to" | null
-  >(null);
+  // UI state - token selector removed
   const [priceInputFocused, setPriceInputFocused] = useState(false);
   const [showLimitOrderPoolsModal, setShowLimitOrderPoolsModal] =
     useState(false);
@@ -49,9 +39,7 @@ const LimitOrderCard: React.FC = () => {
   // Limit order validation state
   const [limitOrderError, setLimitOrderError] = useState<string | null>(null);
 
-  // Token selector state
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  // Token selector state removed
 
   // Get balances
   const fromBalance = balances.get(fromToken?.address || "") || 0n;
@@ -73,32 +61,14 @@ const LimitOrderCard: React.FC = () => {
     return `${formatted} ${token.symbol}`;
   }, []);
 
-  // Filter tokens based on search and tags
-  const filteredTokens = useMemo(() => {
-    return tokens.filter((token) => {
-      // Search filter
-      const matchesSearch =
-        searchQuery === "" ||
-        token.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        token.name.toLowerCase().includes(searchQuery.toLowerCase());
-
-      // Tag filter
-      const matchesTag =
-        selectedTag === null ||
-        (token.address &&
-          tokenToTags[token.address] &&
-          tokenToTags[token.address].includes(selectedTag as any));
-
-      return matchesSearch && matchesTag;
-    });
-  }, [searchQuery, selectedTag]);
+  // Token filtering removed - no longer needed
 
   // Calculate amounts and slippage for advanced hooks
   const allowedSlippage = new Fraction(BigInt(limitOrderSlippage), 10000n);
   const amountIn =
     inputAmount && fromToken ? parseUnits(inputAmount, fromToken.decimals) : 0n;
 
-  // Advanced order management hooks
+  // Unified order management hook
   const {
     // Pool and validation info
     limitOrderPool,
@@ -142,7 +112,13 @@ const LimitOrderCard: React.FC = () => {
     // Date handling - not used in UI but kept for order creation
     date,
     expiryDate,
-  } = useAdvancedManageOrders({
+
+    // Order management
+    createLimitOrder,
+    isCreatingOrder,
+    orderError,
+    clearError,
+  } = useManageLimitOrders({
     userAddress: connectedAddress || undefined,
     token0: fromToken,
     token1: toToken,
@@ -157,19 +133,12 @@ const LimitOrderCard: React.FC = () => {
     },
   });
 
-  // Order management hooks
-  const { createLimitOrder, isCreatingOrder, orderError, clearError } =
-    useManageOrders();
-
   // Use the advanced error or fallback to original error
   const finalLimitOrderError = advancedLimitOrderError || limitOrderError;
 
-  // Swap from/to tokens
+  // Swap function disabled - tokens are locked
   const handleSwapTokens = () => {
-    setFromToken(toToken);
-    setToToken(fromToken);
-    // Keep inputAmount as is - the user's quantity input remains the same
-    // Order type is now determined automatically by the hook based on token order
+    // No-op: tokens are locked to MAS -> USDC
   };
 
   // Handle amount changes - let the hook handle calculations
@@ -183,29 +152,23 @@ const LimitOrderCard: React.FC = () => {
     const parsedAmount = parseFloat(inputAmount);
     const isValidAmount = !isNaN(parsedAmount) && parsedAmount > 0;
 
+    // Validate that we have a valid price and IDs
+    const isPriceValid =
+      activeId !== undefined &&
+      targetId !== undefined &&
+      (isSellOrder ? targetId < activeId : targetId > activeId);
+
     const isValid =
       connectedAddress &&
       inputAmount &&
       isValidAmount &&
       !invalidAmountLimitOrder &&
       !advancedLimitOrderError &&
+      isPriceValid &&
       (isValidAmount
         ? BigInt(Math.floor(parsedAmount * 10 ** fromToken.decimals)) <=
           fromBalance
         : false);
-
-    console.log({
-      connectedAddress,
-      inputAmount,
-      parse: isValidAmount,
-      invalidAmountLimitOrder,
-      advancedLimitOrderError,
-      balanceCheck: isValidAmount
-        ? BigInt(Math.floor(parsedAmount * 10 ** fromToken.decimals)) <=
-          fromBalance
-        : false,
-      isValid,
-    });
 
     return isValid;
   };
@@ -224,7 +187,6 @@ const LimitOrderCard: React.FC = () => {
       limitPrice: priceLODisplayed || "0",
       orderType: isSellOrder ? "sell" : "buy",
     });
-    console.log({});
 
     if (success) {
       // Clear form on successful order creation
@@ -240,47 +202,18 @@ const LimitOrderCard: React.FC = () => {
     handleInputAmountChange(maxAmount.toString());
   };
 
-  // Token selection handlers
+  // Token selection handlers - disabled since tokens are locked
   const handleTokenSelect = (token: Token) => {
-    // Close modal immediately, like in Dusa implementation
-    setShowTokenSelector(null);
-
-    const otherToken = showTokenSelector === "from" ? toToken : fromToken;
-
-    // If selecting the same token as the other input, swap the tokens
-    if (token.equals(otherToken)) {
-      // Invert tokens like in Dusa implementation
-      setFromToken(toToken);
-      setToToken(fromToken);
-      // Keep inputAmount - no need to swap amounts
-    } else {
-      // Normal token selection
-      if (showTokenSelector === "from") {
-        setFromToken(token);
-      } else if (showTokenSelector === "to") {
-        setToToken(token);
-      }
-      // Clear form when changing tokens
-      setInputAmount("");
-    }
-
-    // Reset search state
-    setSearchQuery("");
-    setSelectedTag(null);
+    // No-op: token selection is disabled
   };
 
   const handleCloseTokenSelector = () => {
-    setShowTokenSelector(null);
-    setSearchQuery("");
-    setSelectedTag(null);
+    // No-op: token selector is disabled
   };
 
-  // Handle pool selection from modal
+  // Handle pool selection from modal - disabled
   const handleSelectPool = (token0: Token, token1: Token) => {
-    setFromToken(token0);
-    setToToken(token1);
-    // Clear form when changing tokens
-    setInputAmount("");
+    // No-op: pool selection disabled, tokens are locked
     setShowLimitOrderPoolsModal(false);
   };
 
@@ -316,29 +249,25 @@ const LimitOrderCard: React.FC = () => {
               value={inputAmount}
               onChange={(e) => handleInputAmountChange(e.target.value)}
               rightAddon={
-                <div
-                  className="token-selector"
-                  onClick={() => setShowTokenSelector("from")}
-                >
+                <div className="token-display">
                   <img
                     src={fromToken.logoURI}
                     alt={fromToken.symbol}
                     className="token-logo"
                   />
                   <span>{fromToken.symbol}</span>
-                  <FontAwesomeIcon icon={faChevronDown} />
                 </div>
               }
             />
           </div>
         </div>
 
-        {/* Swap Button */}
-        <div className="swap-button-wrapper">
-          <button className="swap-button" onClick={handleSwapTokens}>
+        {/* Swap Button - Disabled */}
+        {/* <div className="swap-button-wrapper">
+          <button className="swap-button" disabled>
             <FontAwesomeIcon icon={faExchangeAlt} />
           </button>
-        </div>
+        </div> */}
 
         {/* To Token Input */}
         <div className="token-input">
@@ -354,17 +283,13 @@ const LimitOrderCard: React.FC = () => {
             value={orderAmountOutDisplayed || ""}
             readOnly
             rightAddon={
-              <div
-                className="token-selector"
-                onClick={() => setShowTokenSelector("to")}
-              >
+              <div className="token-display">
                 <img
                   src={toToken.logoURI}
                   alt={toToken.symbol}
                   className="token-logo"
                 />
                 <span>{toToken.symbol}</span>
-                <FontAwesomeIcon icon={faChevronDown} />
               </div>
             }
           />
@@ -447,24 +372,6 @@ const LimitOrderCard: React.FC = () => {
             </div>
           )}
 
-        {/* Order Details */}
-        {isFormValid() && (
-          <div className="order-details">
-            <div className="order-details__row">
-              <span>Order Type</span>
-              <span
-                className={`order-type order-type--${isSellOrder ? "sell" : "buy"}`}
-              >
-                {isSellOrder ? "SELL" : "BUY"}
-              </span>
-            </div>
-            <div className="order-details__row">
-              <span>Slippage Tolerance</span>
-              <span>{(limitOrderSlippage / 100).toFixed(2)}%</span>
-            </div>
-          </div>
-        )}
-
         {/* Submit Button */}
         <Button
           onClick={handleCreateOrder}
@@ -473,126 +380,11 @@ const LimitOrderCard: React.FC = () => {
           fullWidth
           size="lg"
         >
-          {isCreatingOrder
-            ? "Creating Order..."
-            : `Create ${isSellOrder ? "SELL" : "BUY"} Order`}
+          {isCreatingOrder ? "Creating Order..." : "Create Order"}
         </Button>
       </div>
 
-      {/* Token Selector Modal */}
-      {showTokenSelector && (
-        <Portal>
-          <div
-            className="token-modal-overlay"
-            onClick={handleCloseTokenSelector}
-          >
-            <div className="token-modal" onClick={(e) => e.stopPropagation()}>
-              <div className="token-modal__header">
-                <h3>Select a Token</h3>
-                <button onClick={handleCloseTokenSelector}>
-                  <FontAwesomeIcon icon={faTimes} />
-                </button>
-              </div>
-
-              <div className="token-modal__search">
-                <div className="search-input">
-                  <FontAwesomeIcon icon={faSearch} />
-                  <input
-                    type="text"
-                    placeholder="Search by name or symbol..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="token-modal__tags">
-                <button
-                  className={`tag-button ${selectedTag === null ? "active" : ""}`}
-                  onClick={() => setSelectedTag(null)}
-                >
-                  All
-                </button>
-                {tags.map((tag) => (
-                  <button
-                    key={tag}
-                    className={`tag-button ${selectedTag === tag ? "active" : ""}`}
-                    onClick={() => setSelectedTag(tag)}
-                  >
-                    {tag.charAt(0).toUpperCase() + tag.slice(1)}
-                  </button>
-                ))}
-              </div>
-
-              <div className="token-modal__list">
-                {filteredTokens.length > 0 ? (
-                  filteredTokens.map((token, index) => {
-                    const balance = balances.get(token.address || "") || 0n;
-                    const isSelected =
-                      (showTokenSelector === "from" &&
-                        token.equals(fromToken)) ||
-                      (showTokenSelector === "to" && token.equals(toToken));
-
-                    return (
-                      <div
-                        key={`${token.address || "unknown"}-${index}`}
-                        className={`token-item ${isSelected ? "selected" : ""}`}
-                        onClick={() => handleTokenSelect(token)}
-                      >
-                        <div className="token-item__logo">
-                          <img
-                            src={token.logoURI}
-                            alt={token.symbol}
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src =
-                                "/assets/img/Massa_Brand_White.svg";
-                            }}
-                          />
-                        </div>
-                        <div className="token-item__info">
-                          <div className="token-item__symbol">
-                            {token.symbol}
-                          </div>
-                          <div className="token-item__name">
-                            {token.name}
-                            {token.address && tokenToTags[token.address] && (
-                              <div className="token-item__tags">
-                                {tokenToTags[token.address].map((tag) => (
-                                  <span
-                                    key={tag}
-                                    className={`token-tag token-tag--${tag}`}
-                                  >
-                                    {tag}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        <div className="token-item__balance">
-                          {formatBalance(balance, token)}
-                        </div>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <div className="token-modal__no-results">
-                    <p>No tokens found matching your criteria</p>
-                    <button
-                      onClick={() => {
-                        setSearchQuery("");
-                        setSelectedTag(null);
-                      }}
-                    >
-                      Clear filters
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </Portal>
-      )}
+      {/* Token Selector Modal - Removed since tokens are locked */}
 
       {/* Limit Order Pools Modal */}
       <LimitOrderPoolsModal

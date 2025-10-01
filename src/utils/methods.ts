@@ -1,7 +1,7 @@
 import { Bin as _Bin, Fraction, TokenAmount } from "@dusalabs/sdk";
 import { poolsV2WithLO } from "./pools";
-import { MASSA, WMAS } from './tokens';
-import type { Token, PoolV2WithLO } from './types';
+import { MASSA, WMAS } from "./tokens";
+import type { Token, PoolV2WithLO } from "./types";
 
 /**
  * Get MAS if WMAS is provided
@@ -9,7 +9,6 @@ import type { Token, PoolV2WithLO } from './types';
  * @returns MAS token if input is WMAS, else returns input token
  */
 export const getMasIfWmas = (token: Token): Token => {
-  console.log(token.equals(WMAS), { token, WMAS });
   return token.equals(WMAS) ? MASSA : token;
 };
 
@@ -21,7 +20,7 @@ export const getMasIfWmas = (token: Token): Token => {
  */
 export const findLimitOrderPool = (
   token0: Token,
-  token1: Token,
+  token1: Token
 ): PoolV2WithLO | undefined => {
   return poolsV2WithLO.find(
     (pool) =>
@@ -32,7 +31,7 @@ export const findLimitOrderPool = (
       ((pool.token0.address === token0.address &&
         pool.token1.address === token1.address) ||
         (pool.token0.address === token1.address &&
-          pool.token1.address === token0.address)),
+          pool.token1.address === token0.address))
   );
 };
 
@@ -42,7 +41,7 @@ export const findLimitOrderPool = (
  * @returns The matching PoolV2WithLO or undefined if not found
  */
 export const findLimitOrderPoolByAddress = (
-  poolAddress: string,
+  poolAddress: string
 ): PoolV2WithLO | undefined => {
   return poolsV2WithLO.find((pool) => pool.pairAddress === poolAddress);
 };
@@ -58,7 +57,7 @@ export const getPoolByLOAddress = (loSC: string): PoolV2WithLO | undefined =>
  */
 export const validateLimitOrderSupport = (
   token0: Token | undefined,
-  token1: Token | undefined,
+  token1: Token | undefined
 ): {
   isSupported: boolean;
   pool: PoolV2WithLO | undefined;
@@ -116,7 +115,7 @@ export const toFraction = (value: number | string): Fraction => {
  */
 export const tokenAmountToSignificant = (
   tokenAmount: TokenAmount,
-  significantFigures = 6,
+  significantFigures = 6
 ): string => {
   return tokenAmount.toSignificant(significantFigures);
 };
@@ -129,7 +128,7 @@ export const tokenAmountToSignificant = (
  */
 export const roundFractionPriceAdaptive = (
   price: Fraction,
-  token: Token,
+  token: Token
 ): string => {
   if (price.numerator === 0n) return "0";
 
@@ -154,7 +153,7 @@ export const roundFractionPriceAdaptive = (
  */
 export const roundFractionPrice = (
   price: Fraction,
-  adaptive = true,
+  adaptive = true
 ): string => {
   if (price.numerator === 0n) return "0";
   return price.toSignificant(adaptive ? 8 : 6);
@@ -170,7 +169,7 @@ export const roundFractionPrice = (
 export const formatAmount = (
   amount: bigint,
   decimals: number,
-  maxDecimals = 6,
+  maxDecimals = 6
 ): string => {
   const formatted = Number(amount) / 10 ** decimals;
   return formatted.toLocaleString(undefined, {

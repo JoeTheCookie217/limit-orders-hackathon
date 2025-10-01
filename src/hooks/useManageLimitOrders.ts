@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useContext } from "react";
 import {
   Fraction,
   LimitOrder,
@@ -7,10 +7,12 @@ import {
   TokenAmount,
 } from "@dusalabs/sdk";
 import { useQuery } from "@tanstack/react-query";
+import { AccountWrapperContext } from "context/AccountWrapperContext";
 import useFetchAllowance from "./useFetchAllowance";
 import { useSendTransaction } from "./useSendTransaction";
 import { ONE_DAY, U256_MAX } from "../utils/constants";
 import { fetchPairInformationOpti } from "../utils/datastoreFetcher";
+import eventEmitter from "utils/eventEmitter";
 import {
   findLimitOrderPool,
   validateLimitOrderSupport,
@@ -20,12 +22,35 @@ import {
   toFraction,
   tokenAmountToSignificant,
 } from "../utils/methods";
-import { buildIncreaseAllowanceTx } from "../utils/transactionBuilder";
-import type { Token } from "../utils/types";
+import {
+  buildAddOrderTx,
+  buildIncreaseAllowanceTx,
+  toBI,
+} from "../utils/transactionBuilder";
+import type { Token, Order } from "../utils/types";
 
 type Allowance = "increase" | "increaseMax";
 
-interface UseAdvancedManageOrdersParams {
+export interface LocalPendingLimitOrder {
+  id: string;
+  scAddress: string;
+  token0: Token;
+  token1: Token;
+  orderType: "buy" | "sell";
+  amountIn: string;
+  price: string;
+  timestamp: number;
+}
+
+export interface LocallyCompletedOrder {
+  id: string;
+  limitOrderAddress: string;
+  status: "CLAIMED" | "CANCELED";
+  timestamp: string;
+  orderData: Order;
+}
+
+interface UseManageLimitOrdersParams {
   userAddress: string | undefined;
   token0: Token | undefined;
   token1: Token | undefined;
@@ -36,9 +61,7 @@ interface UseAdvancedManageOrdersParams {
   fetchBalances?: () => void;
 }
 
-export const useAdvancedManageOrders = (
-  params: UseAdvancedManageOrdersParams
-) => {
+export const useManageLimitOrders = (params: UseManageLimitOrdersParams) => {
   const {
     userAddress,
     token0,
@@ -49,6 +72,10 @@ export const useAdvancedManageOrders = (
     allowedSlippage,
     fetchBalances,
   } = params;
+
+  const { connectedAddress, client, balances, refetch } = useContext(
+    AccountWrapperContext
+  );
 
   // Find the limit order pool for the selected tokens
   const limitOrderPool =
@@ -75,6 +102,15 @@ export const useAdvancedManageOrders = (
   const [isPriceInverted, setIsPriceInverted] = useState<boolean>(false);
   const [limitOrderError, setLimitOrderError] = useState<string | null>(null);
 
+  // Order management state
+  const [pendingOrders, setPendingOrders] = useState<LocalPendingLimitOrder[]>(
+    []
+  );
+  const [completedOrders, setCompletedOrders] = useState<
+    LocallyCompletedOrder[]
+  >([]);
+  const [orderError, setOrderError] = useState<string | null>(null);
+
   // Fetch pair information using fetchPairInformationOpti exactly like Dusa
   const pairInfoQuery = useQuery(
     ["pairInformation", pairAddress],
@@ -90,18 +126,41 @@ export const useAdvancedManageOrders = (
   });
   const allowance = allowanceQuery.data || 0n;
 
+  // Transaction hooks
+  const { submitTx: submitLimitOrder, pending: pendingLimitOrder } =
+    useSendTransaction({
+      onTxConfirmed: () => {
+        // Refetch balances and orders
+        setTimeout(() => {
+          refetch(["balances", "orders"]);
+
+          // Clear local pending orders state
+          // Note: localStorage cleanup is now handled by useManageOrdersStorage
+          setPendingOrders([]);
+        }, 1000);
+      },
+    });
+
   // Allowance transaction
   const { submitTx: submitIncreaseAllowanceTx, pending: pendingAllowance } =
     useSendTransaction({
-      data: buildIncreaseAllowanceTx(
-        token0?.address || "",
-        orderSC || "",
-        allowanceType === "increaseMax" ? U256_MAX : amountIn - allowance
-      ),
       onTxConfirmed: () => {
         allowanceQuery.refetch();
       },
     });
+
+  // Combined loading state
+  const isCreatingOrder = pendingLimitOrder || pendingAllowance;
+
+  // Wrapper to build transaction with current values
+  const handleIncreaseAllowance = () => {
+    const txData = buildIncreaseAllowanceTx(
+      token0?.address || "",
+      orderSC || "",
+      allowanceType === "increaseMax" ? U256_MAX : amountIn - allowance
+    );
+    return submitIncreaseAllowanceTx(txData);
+  };
 
   const tokensSet = !!token0 && !!token1;
 
@@ -264,15 +323,6 @@ export const useAdvancedManageOrders = (
     amountIn === 0n ||
     !orderAmountOut ||
     (token0?.symbol !== "MAS" && amountIn > allowance);
-
-  console.log({
-    orderAmountIn,
-    orderAmountOut,
-    amountInALowa: amountIn > allowance,
-    amountIn,
-    allowance,
-    invalidAmountLimitOrder,
-  });
 
   const getDiffPricePct = (newId: number) => {
     const actualPrice = getPriceFromId(effectiveActiveId, binStep);
@@ -484,6 +534,187 @@ export const useAdvancedManageOrders = (
     }
   }, [pairAddress]);
 
+  // Validate limit order creation parameters
+  const validateOrderParams = useCallback(
+    (params: {
+      fromToken: Token;
+      toToken: Token;
+      fromAmount: string;
+      limitPrice: string;
+    }) => {
+      const { fromToken, toToken, fromAmount, limitPrice } = params;
+
+      if (!connectedAddress || !client) {
+        return { valid: false, error: "Wallet not connected" };
+      }
+
+      if (!fromAmount || parseFloat(fromAmount) <= 0) {
+        return { valid: false, error: "Please enter a valid amount" };
+      }
+
+      if (!limitPrice || parseFloat(limitPrice) <= 0) {
+        return { valid: false, error: "Please enter a valid price" };
+      }
+
+      // Check if limit orders are supported for this token pair
+      const validation = validateLimitOrderSupport(fromToken, toToken);
+      if (!validation.isSupported || !validation.pool) {
+        return {
+          valid: false,
+          error: validation.error || "Token pair not supported",
+        };
+      }
+
+      // Check balance
+      const balance = balances.get(fromToken.address || "") || 0n;
+      const requiredAmount = BigInt(
+        parseFloat(fromAmount) * 10 ** fromToken.decimals
+      );
+
+      if (requiredAmount > balance) {
+        return { valid: false, error: "Insufficient balance" };
+      }
+
+      return { valid: true, pool: validation.pool };
+    },
+    [connectedAddress, client, balances]
+  );
+
+  // Create limit order
+  const createLimitOrder = useCallback(
+    async (params: {
+      fromToken: Token;
+      toToken: Token;
+      fromAmount: string;
+      limitPrice: string;
+      orderType: "buy" | "sell";
+    }): Promise<boolean> => {
+      setOrderError(null);
+
+      // Validate parameters
+      const validation = validateOrderParams(params);
+      if (!validation.valid) {
+        setOrderError(validation.error || "Invalid order parameters");
+        return false;
+      }
+
+      const { fromToken, toToken, fromAmount, limitPrice, orderType } = params;
+      const pool = validation.pool!;
+
+      // Declare variables outside try block for error handling
+      let timestamp: number = Date.now();
+      let orderId: number = timestamp;
+
+      try {
+        const amountBigInt = BigInt(
+          parseFloat(fromAmount) * 10 ** fromToken.decimals
+        );
+
+        // Use the already validated and calculated targetId instead of recalculating
+        // targetId is maintained by the hook and accounts for all price transformations
+        const binId = targetId;
+
+        // Create LimitOrder using Dusa-compatible structure
+        const order = new LimitOrder(
+          toBI(orderType === "sell" ? 0 : 1), // 0 for sell, 1 for buy in Dusa
+          toBI(binId),
+          amountBigInt
+        );
+
+        // Determine if we should use MAS transaction
+        const shouldUseMas = fromToken.symbol === "MAS";
+
+        // Create pending order for UI tracking
+        timestamp = Date.now();
+        orderId = timestamp;
+
+        const localPendingOrder: LocalPendingLimitOrder = {
+          id: orderId.toString(),
+          scAddress: pool.loSC,
+          token0: fromToken,
+          token1: toToken,
+          orderType,
+          amountIn: fromAmount,
+          price: limitPrice,
+          timestamp,
+        };
+
+        // Build transaction
+        const txData = buildAddOrderTx(order, pool.loSC, shouldUseMas);
+
+        // Submit transaction - this will block until user approves in wallet
+        // If user rejects, an error will be thrown and we won't reach the code below
+        await submitLimitOrder(txData);
+
+        // ✅ Transaction submitted and confirmed successfully
+        // Note: The real order ID is extracted from blockchain events in useSendTransaction
+        // and stored in localStorage there. This ensures we use the correct ID for cleanup.
+
+        // Add to local pending orders for detailed UI display (uses local timestamp ID)
+        setPendingOrders((prev) => [...prev, localPendingOrder]);
+
+        // Emit event for other components
+        eventEmitter.emit("orderCreated", {
+          order: localPendingOrder,
+          pool,
+        });
+
+        return true;
+      } catch (error) {
+        console.error("Failed to create limit order:", error);
+        setOrderError(
+          error instanceof Error
+            ? error.message
+            : "Failed to create limit order. Please try again."
+        );
+
+        // Remove from local pending orders on error
+        // Note: Since we never added to localStorage (only useSendTransaction does that
+        // after successful transaction), we only need to clean local state
+        setPendingOrders((prev) =>
+          prev.filter((order) => order.timestamp !== timestamp)
+        );
+
+        return false;
+      }
+    },
+    [validateOrderParams, submitLimitOrder, connectedAddress]
+  );
+
+  // Clear error
+  const clearError = useCallback(() => {
+    setOrderError(null);
+  }, []);
+
+  // Listen to transaction confirmations to move orders from pending to completed
+  useEffect(() => {
+    const handleTransactionConfirmed = (data: any) => {
+      if (data.hash && pendingOrders.length > 0) {
+        console.log("Transaction confirmed:", data.hash);
+      }
+    };
+
+    eventEmitter.on("transactionConfirmed", handleTransactionConfirmed);
+
+    return () => {
+      eventEmitter.off("transactionConfirmed", handleTransactionConfirmed);
+    };
+  }, [pendingOrders]);
+
+  // Cleanup pending orders after some time (fallback for local state only)
+  // Note: localStorage cleanup is now handled by useManageOrdersStorage
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // Remove local pending orders older than 5 minutes
+      const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+      setPendingOrders((prev) =>
+        prev.filter((order) => order.timestamp > fiveMinutesAgo)
+      );
+    }, 60000); // Check every minute
+
+    return () => clearInterval(interval);
+  }, []);
+
   return {
     // Pool and validation info
     limitOrderPool,
@@ -530,11 +761,19 @@ export const useAdvancedManageOrders = (
     allowance,
     allowanceType,
     setAllowanceType,
-    submitIncreaseAllowanceTx,
+    submitIncreaseAllowanceTx: handleIncreaseAllowance,
     pendingAllowance,
 
     // Date handling - hard-coded infinite expiration
     date,
     expiryDate,
+
+    // Order management
+    pendingOrders,
+    completedOrders,
+    orderError,
+    isCreatingOrder,
+    createLimitOrder,
+    clearError,
   };
 };

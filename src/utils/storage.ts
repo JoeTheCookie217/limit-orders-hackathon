@@ -161,3 +161,42 @@ export const addRecentTransaction = (tx: RecentTransaction): void => {
 
 export const getRecentTransactions = (): RecentTransaction[] =>
   getFromStorage<RecentTransaction[]>(STORAGE_KEYS.RECENT_TRANSACTIONS, []);
+
+// Locally Completed Orders - for immediate UI feedback before backend sync
+export interface LocallyCompletedOrder {
+  id: number;
+  limitOrderAddress: string;
+  status: 'CLAIMED' | 'CANCELED';
+  timestamp: string;
+  orderData: any; // Store the full order data for immediate display
+}
+
+export const getLocallyCompletedOrders = (
+  userAddress: string,
+): LocallyCompletedOrder[] =>
+  getFromStorage<LocallyCompletedOrder[]>(
+    `locallyCompletedOrders${userAddress}`,
+    [],
+  );
+
+export const setLocallyCompletedOrder = (
+  userAddress: string,
+  order: LocallyCompletedOrder,
+) => {
+  const completed = getLocallyCompletedOrders(userAddress);
+
+  // Remove existing order with same ID to prevent duplicates
+  const filtered = completed.filter((o) => o.id !== order.id);
+  filtered.push(order);
+
+  setInStorage(`locallyCompletedOrders${userAddress}`, filtered);
+};
+
+export const removeLocallyCompletedOrders = (
+  userAddress: string,
+  orderIds: number[],
+) => {
+  const completed = getLocallyCompletedOrders(userAddress);
+  const filtered = completed.filter((order) => !orderIds.includes(order.id));
+  setInStorage(`locallyCompletedOrders${userAddress}`, filtered);
+};

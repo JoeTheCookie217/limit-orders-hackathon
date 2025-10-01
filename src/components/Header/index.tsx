@@ -18,8 +18,11 @@ const Header: React.FC = () => {
   const {
     connectedAddress,
     isConnecting,
+    isAutoConnecting,
+    shouldOpenBearbyModal,
     connectWallet,
     disconnectWallet,
+    dismissBearbyModal,
     balances,
   } = useContext(AccountWrapperContext);
   const { interfaceTheme, setInterfaceTheme } = useContext(SettingsContext);
@@ -46,8 +49,8 @@ const Header: React.FC = () => {
     setShowWalletModal(true);
   };
 
-  const handleWalletConnect = async () => {
-    await connectWallet();
+  const handleWalletConnect = async (provider: any) => {
+    await connectWallet(provider);
     setShowWalletModal(false);
   };
 
@@ -109,10 +112,10 @@ const Header: React.FC = () => {
           ) : (
             <Button
               onClick={handleConnectClick}
-              loading={isConnecting}
+              loading={isConnecting || isAutoConnecting}
               size="sm"
             >
-              Connect Wallet
+              {isAutoConnecting ? "Auto-connecting..." : "Connect Wallet"}
             </Button>
           )}
         </div>

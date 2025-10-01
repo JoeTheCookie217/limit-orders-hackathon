@@ -38,12 +38,6 @@ export const useFetchBalances = ({
         return 0n;
       }
 
-      console.log(`🔍 Fetching balance for ${token.symbol}:`, {
-        tokenAddress: token.address,
-        connectedAddress,
-        clientType: token.equals(MASSA) ? "wallet" : "readOnly",
-      });
-
       if (token.equals(MASSA)) {
         // Fetch native MAS balance using wallet client
         try {
@@ -62,13 +56,13 @@ export const useFetchBalances = ({
         } catch (error) {
           console.error(
             `❌ Error fetching token balance for ${token.symbol}:`,
-            error,
+            error
           );
           return 0n;
         }
       }
     },
-    [client, connectedAddress],
+    [client, connectedAddress]
   );
 
   const refetchBalances = useCallback(async () => {
@@ -101,7 +95,7 @@ export const useFetchBalances = ({
         } catch (tokenError) {
           console.error(
             `Failed to fetch balance for ${token.symbol}:`,
-            tokenError,
+            tokenError
           );
           // Add token with zero balance on error
           const tokenInfo: TokenInfo = {

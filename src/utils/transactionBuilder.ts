@@ -1,18 +1,18 @@
-import { Args, ArrayTypes, MAX_GAS_CALL } from '@massalabs/massa-web3';
-import { U256_MAX, minimalFee } from './constants';
-import { MassaUnits } from './types';
-import type { ICallData } from './types';
+import { Args, ArrayTypes, MAX_GAS_CALL } from "@massalabs/massa-web3";
+import { U256_MAX, minimalFee } from "./constants";
+import { MassaUnits } from "./types";
+import type { ICallData } from "./types";
 
 /**
  * Convert a value to BigInt safely
  */
 export const toBI = (value: number | bigint | string): bigint => {
-  if (typeof value === 'bigint') return value;
+  if (typeof value === "bigint") return value;
   return BigInt(isNaN(Number(value)) ? 0 : Math.floor(Math.abs(Number(value))));
 };
 
 const ONE_BILLION = 1_000_000_000n;
-const callData: Pick<ICallData, 'coins' | 'fee' | 'maxGas'> = {
+const callData: Pick<ICallData, "coins" | "fee" | "maxGas"> = {
   coins: 100n * MassaUnits.mMassa, // 0.1 MAS
   fee: minimalFee,
   maxGas: ONE_BILLION,
@@ -24,14 +24,14 @@ const callData: Pick<ICallData, 'coins' | 'fee' | 'maxGas'> = {
 export const buildIncreaseAllowanceTx = (
   token: string,
   spender: string,
-  amount: bigint,
+  amount: bigint
 ): ICallData => {
   const args = new Args().addString(spender).addU256(amount > 0n ? amount : 0n);
 
   return {
     ...callData,
     targetAddress: token,
-    targetFunction: 'increaseAllowance',
+    targetFunction: "increaseAllowance",
     parameter: args,
   };
 };
@@ -42,13 +42,13 @@ export const buildIncreaseAllowanceTx = (
 export const buildAddOrderTx = (
   order: { orderType: bigint; binId: bigint; amountIn: bigint },
   limitOrderSC: string,
-  useMas = false,
+  useMas = false
 ): ICallData => {
   const masToSend = MassaUnits.oneMassa;
 
   const args = new Args().addU8(order.orderType).addU64(order.binId);
   if (useMas) {
-    args.addU64(masToSend);
+    args.addU64(order.amountIn);
   } else {
     args.addU256(order.amountIn);
   }
@@ -56,7 +56,7 @@ export const buildAddOrderTx = (
   return {
     ...callData,
     targetAddress: limitOrderSC,
-    targetFunction: useMas ? 'addLimitOrderMas' : 'addLimitOrder',
+    targetFunction: useMas ? "addLimitOrderMas" : "addLimitOrder",
     parameter: args,
     coins: useMas ? order.amountIn + masToSend : 100n * MassaUnits.mMassa,
     maxGas: MAX_GAS_CALL,
@@ -70,14 +70,14 @@ export const buildAddOrderTx = (
 export const buildCancelOrderTx = (
   orderId: number,
   limitOrderSC: string,
-  isMas: boolean,
+  isMas: boolean
 ): ICallData => {
   const args = new Args().addU32(BigInt(orderId));
 
   return {
     ...callData,
     targetAddress: limitOrderSC,
-    targetFunction: isMas ? 'cancelOrderMas' : 'cancelOrder',
+    targetFunction: isMas ? "cancelOrderMas" : "cancelOrder",
     parameter: args,
   };
 };
@@ -88,14 +88,14 @@ export const buildCancelOrderTx = (
 export const buildClaimOrderTx = (
   orderId: number,
   limitOrderSC: string,
-  useMas: boolean,
+  useMas: boolean
 ): ICallData => {
   const args = new Args().addU32(BigInt(orderId));
 
   return {
     ...callData,
     targetAddress: limitOrderSC,
-    targetFunction: useMas ? 'claimOrderMas' : 'claimOrder',
+    targetFunction: useMas ? "claimOrderMas" : "claimOrder",
     parameter: args,
   };
 };
@@ -107,7 +107,7 @@ export const buildWrapTx = (amount: bigint, wmasAddress: string): ICallData => {
   return {
     ...callData,
     targetAddress: wmasAddress,
-    targetFunction: 'deposit',
+    targetFunction: "deposit",
     parameter: new Args(),
     coins: amount,
   };
@@ -119,7 +119,7 @@ export const buildWrapTx = (amount: bigint, wmasAddress: string): ICallData => {
 export const buildUnwrapTx = (
   _amount: bigint,
   target: string,
-  wmasAddress: string,
+  wmasAddress: string
 ): ICallData => {
   const amount = _amount <= BigInt(2 ** 64 - 1) ? _amount : 0n;
   const args = new Args().addU64(amount).addString(target);
@@ -127,7 +127,7 @@ export const buildUnwrapTx = (
   return {
     ...callData,
     targetAddress: wmasAddress,
-    targetFunction: 'withdraw',
+    targetFunction: "withdraw",
     parameter: args,
     coins: 0n,
   };
@@ -139,7 +139,7 @@ export const buildUnwrapTx = (
 export const buildTransferTokenTx = (
   token: string,
   receiver: string,
-  amount: bigint,
+  amount: bigint
 ): ICallData => {
   const args = new Args()
     .addString(receiver)
@@ -148,7 +148,7 @@ export const buildTransferTokenTx = (
   return {
     ...callData,
     targetAddress: token,
-    targetFunction: 'transfer',
+    targetFunction: "transfer",
     parameter: args,
   };
 };

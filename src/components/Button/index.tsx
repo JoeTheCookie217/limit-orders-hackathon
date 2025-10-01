@@ -35,7 +35,8 @@ const Button: React.FC<ButtonProps> = ({
       disabled={disabled || loading}
       {...props}
     >
-      {loading ? <div className="button__spinner" /> : children}
+      {loading && <div className="button__spinner" />}
+      <span className="button__content">{children}</span>
     </button>
   );
 };

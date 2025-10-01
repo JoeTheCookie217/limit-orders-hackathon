@@ -37,6 +37,7 @@ const ActiveOrdersList: React.FC<ActiveOrdersListProps> = ({
     claimOrder: handleClaimOrder,
     isProcessing,
     actionInProgress,
+    processingOrderId,
     actionError,
   } = useOrderAction();
 
@@ -61,10 +62,6 @@ const ActiveOrdersList: React.FC<ActiveOrdersListProps> = ({
       minimumFractionDigits: 0,
       maximumFractionDigits: 6,
     });
-  };
-
-  const getOrderTypeColor = (isSellOrder: boolean) => {
-    return isSellOrder ? "sell" : "buy";
   };
 
   // Convert EnrichedOrder to the Order type expected by useOrderAction
@@ -102,8 +99,19 @@ const ActiveOrdersList: React.FC<ActiveOrdersListProps> = ({
     );
   }
 
+  // Filter active orders and exclude those being removed
   const activeOrders =
-    orders?.filter((order) => order.status === "ACTIVE") || [];
+    orders
+      ?.filter(
+        (order) =>
+          order.status === "ACTIVE" &&
+          !ordersRemoving.some(
+            (removingOrder) =>
+              removingOrder.id.toString() === order.id.toString() &&
+              removingOrder.scAddress === order.limitOrderAddress
+          )
+      )
+      .sort((a, b) => b.id - a.id) || [];
 
   return (
     <div className="active-orders-list">
@@ -142,7 +150,6 @@ const ActiveOrdersList: React.FC<ActiveOrdersListProps> = ({
       ) : activeOrders.length > 0 ? (
         <div className="active-orders-list__content">
           {activeOrders.map((order) => {
-            const orderType = getOrderTypeColor(order.isSellOrder);
             const t0 = getMasIfWmas(order.tokenIn!);
             const t1 = getMasIfWmas(order.tokenOut!);
 
@@ -166,9 +173,6 @@ const ActiveOrdersList: React.FC<ActiveOrdersListProps> = ({
                       <span className="pair-name">
                         {t0?.symbol || "Token"}/{t1?.symbol || "Token"}
                       </span>
-                      <span className={`order-type order-type--${orderType}`}>
-                        {orderType.toUpperCase()}
-                      </span>
                     </div>
                   </div>
 
@@ -178,10 +182,15 @@ const ActiveOrdersList: React.FC<ActiveOrdersListProps> = ({
                       onClick={() =>
                         handleCancelOrder(convertToLocalOrder(order))
                       }
-                      disabled={isProcessing}
+                      disabled={
+                        isProcessing &&
+                        processingOrderId === order.id.toString()
+                      }
                       title="Cancel Order"
                     >
-                      {isProcessing && actionInProgress === "cancel" ? (
+                      {isProcessing &&
+                      actionInProgress === "cancel" &&
+                      processingOrderId === order.id.toString() ? (
                         <FontAwesomeIcon icon={faSpinner} spin />
                       ) : (
                         <FontAwesomeIcon icon={faTrash} />
@@ -202,7 +211,8 @@ const ActiveOrdersList: React.FC<ActiveOrdersListProps> = ({
                   <div className="detail-row">
                     <span className="detail-label">Limit Price</span>
                     <span className="detail-value">
-                      {formatPrice(order.price)} {t0?.symbol || "Token"}
+                      1 {t0?.symbol} ≃ {formatPrice(order.price)}{" "}
+                      {t1?.symbol}
                     </span>
                   </div>
 
