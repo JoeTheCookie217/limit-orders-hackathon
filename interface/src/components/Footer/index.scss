@@ -45,12 +45,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
+    width: 44px;
+    height: 44px;
     color: var(--text-secondary);
     background: transparent;
     border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     text-decoration: none;
     transition: all 0.2s ease;
 
@@ -67,12 +67,45 @@
   }
 }
 
+// Ultra-wide screens
+@media (min-width: 1440px) {
+  .footer {
+    &__container {
+      padding: var(--spacing-xl);
+      max-width: 1400px;
+    }
+
+    &__social {
+      gap: 20px;
+    }
+
+    &__text {
+      font-size: 15px;
+    }
+  }
+}
+
+// Tablet breakpoint
+@media (max-width: 1024px) {
+  .footer {
+    &__container {
+      padding: 20px;
+    }
+
+    &__social {
+      gap: 12px;
+    }
+  }
+}
+
+// Mobile breakpoint
 @media (max-width: 768px) {
   .footer {
     &__container {
       flex-direction: column;
-      gap: 16px;
+      gap: var(--spacing-md);
       text-align: center;
+      padding: var(--spacing-md);
     }
 
     &__social {
@@ -80,11 +113,11 @@
     }
 
     &__social-link {
-      width: 32px;
-      height: 32px;
+      width: 44px;
+      height: 44px;
 
       svg {
-        font-size: 16px;
+        font-size: 18px;
       }
     }
   }
