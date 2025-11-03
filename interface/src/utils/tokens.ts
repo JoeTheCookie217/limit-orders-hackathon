@@ -74,7 +74,7 @@ export const tokens: Token[] = [
   // @ts-ignore
   {
     ..._WETH[CHAIN_ID],
-    name: _WETH[CHAIN_ID].name + " (Ethereum)",
+    name: (_WETH[CHAIN_ID]?.name || "WETH") + " (Ethereum)",
     logoURI:
       "https://assets.coingecko.com/coins/images/279/small/ethereum.png?1595348880",
     equals,
@@ -83,7 +83,7 @@ export const tokens: Token[] = [
   // @ts-ignore
   {
     ..._WETH_B[CHAIN_ID],
-    name: _WETH_B[CHAIN_ID].name + " (BSC)",
+    name: (_WETH_B[CHAIN_ID]?.name || "WETH") + " (BSC)",
     logoURI:
       "https://assets.coingecko.com/coins/images/279/small/ethereum.png?1595348880",
     equals,

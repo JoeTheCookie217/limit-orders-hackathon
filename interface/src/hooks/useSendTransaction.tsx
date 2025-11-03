@@ -95,8 +95,8 @@ export const useSendTransaction = (
       // Verify network
       if (selectedProvider) {
         const networkInfo = await selectedProvider.networkInfos();
-        if (networkInfo.name !== NETWORK) {
-          const errorMsg = `Wrong network detected (${networkInfo.name}). Please switch your wallet to ${NETWORK} to submit transactions.`;
+        if (networkInfo?.name !== NETWORK) {
+          const errorMsg = `Wrong network detected (${networkInfo?.name || 'unknown'}). Please switch your wallet to ${NETWORK} to submit transactions.`;
           console.error(errorMsg);
           toast.error(
             <div>

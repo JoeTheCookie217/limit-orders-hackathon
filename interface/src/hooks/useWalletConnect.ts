@@ -163,9 +163,9 @@ export const useWalletConnect = (): UseWalletConnectReturn => {
     }
 
     const netListener = provider.listenNetworkChanges((network) => {
-      if (network.name !== NETWORK) {
+      if (network?.name !== NETWORK) {
         console.warn(
-          `Network changed to ${network.name}. Transactions will require ${NETWORK}.`
+          `Network changed to ${network?.name || 'unknown'}. Transactions will require ${NETWORK}.`
         );
       }
     });
