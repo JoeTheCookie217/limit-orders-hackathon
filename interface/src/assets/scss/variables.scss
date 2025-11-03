@@ -18,6 +18,7 @@
   &[data-theme="light"] {
     --background-rgb: 255, 255, 255;
     --background: rgb(var(--background-rgb));
+    --background-gradient: linear-gradient(180deg, rgb(var(--background-rgb)), #fafafa);
     --background-secondary: #f8fafc;
     --background-tertiary: #e2e8f0;
 
@@ -36,6 +37,7 @@
   &[data-theme="dark"] {
     --background-rgb: 7, 8, 15;
     --background: rgb(var(--background-rgb));
+    --background-gradient: linear-gradient(180deg, rgb(var(--background-rgb)), #050610);
     --background-secondary: #0f1019;
     --background-tertiary: #1a1b26;
 
@@ -53,6 +55,7 @@
   // Default to dark theme
   --background-rgb: 7, 8, 15;
   --background: rgb(var(--background-rgb));
+  --background-gradient: linear-gradient(180deg, rgb(var(--background-rgb)), #050610);
   --background-secondary: #0f1019;
   --background-tertiary: #1a1b26;
 
