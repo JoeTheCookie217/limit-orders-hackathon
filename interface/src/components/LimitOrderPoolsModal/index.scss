@@ -1,5 +1,5 @@
 .limit-order-pools-modal {
-  max-width: 500px;
+  max-width: clamp(300px, 92vw, 500px);
   width: 100%;
   background: var(--background);
   border: 1px solid var(--border-color);
@@ -8,11 +8,11 @@
   box-shadow: var(--shadow-lg);
 
   .modal-header {
-    margin-bottom: 24px;
+    margin-bottom: var(--spacing-lg);
     text-align: center;
 
     h2 {
-      margin: 0 0 8px 0;
+      margin: 0 0 var(--spacing-sm) 0;
       font-size: 20px;
       font-weight: 600;
       color: var(--text-primary);
@@ -29,7 +29,7 @@
   .pools-list {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: var(--spacing-md);
     margin-bottom: 24px;
   }
 
@@ -60,13 +60,13 @@
   .pool-tokens {
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin-bottom: 12px;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-sm);
 
     .token-info {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: var(--spacing-sm);
 
       .token-logo {
         width: 24px;
@@ -88,7 +88,7 @@
 
   .pool-details {
     display: flex;
-    gap: 24px;
+    gap: var(--spacing-lg);
   }
 
   .detail-item {
@@ -111,7 +111,7 @@
   }
 
   .modal-footer {
-    padding-top: 16px;
+    padding-top: var(--spacing-md);
     border-top: 1px solid var(--border-color);
     text-align: center;
 
@@ -123,18 +123,48 @@
     }
   }
 
-  /* Mobile responsive */
+  // Tablet breakpoint
+  @media (max-width: 1024px) {
+    padding: 20px;
+
+    .modal-header {
+      margin-bottom: var(--spacing-lg);
+
+      h2 {
+        font-size: 18px;
+      }
+    }
+  }
+
+  // Mobile breakpoint
+  @media (max-width: 768px) {
+    padding: var(--spacing-md);
+
+    .modal-header {
+      margin-bottom: var(--spacing-md);
+
+      h2 {
+        font-size: 18px;
+      }
+    }
+  }
+
+  // Very small screens
   @media (max-width: 480px) {
-    padding: 16px;
+    padding: 12px;
     max-width: 100%;
 
-    .modal-header h2 {
-      font-size: 18px;
+    .modal-header {
+      margin-bottom: var(--spacing-sm);
+
+      h2 {
+        font-size: 16px;
+      }
     }
 
     .pool-tokens {
       flex-wrap: wrap;
-      gap: 8px;
+      gap: var(--spacing-sm);
 
       .token-info {
         .token-logo {
@@ -149,7 +179,7 @@
     }
 
     .pool-details {
-      gap: 16px;
+      gap: var(--spacing-md);
     }
   }
 }
