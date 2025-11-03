@@ -3,22 +3,22 @@ import React, {
   useContext,
   useCallback,
   useMemo,
-  useEffect,
-} from "react";
-import { Fraction, parseUnits } from "@dusalabs/sdk";
-import { faExchangeAlt } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import Button from "components/Button";
-import Input from "components/Input";
-import LimitOrderPoolsModal from "components/LimitOrderPoolsModal";
-import PriceInput from "components/PriceInput";
-import { AccountWrapperContext } from "context/AccountWrapperContext";
-import { SettingsContext } from "context/SettingsContext";
-import { useManageLimitOrders } from "hooks/useManageLimitOrders";
-import { validateLimitOrderSupport } from "utils/methods";
-import { MASSA, USDC } from "utils/tokens";
-import type { Token } from "utils/types";
-import "./index.scss";
+  useEffect
+} from 'react';
+import { Fraction, parseUnits } from '@dusalabs/sdk';
+import { faExchangeAlt } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import Button from 'components/Button';
+import Input from 'components/Input';
+import LimitOrderPoolsModal from 'components/LimitOrderPoolsModal';
+import PriceInput from 'components/PriceInput';
+import { AccountWrapperContext } from 'context/AccountWrapperContext';
+import { SettingsContext } from 'context/SettingsContext';
+import { useManageLimitOrders } from 'hooks/useManageLimitOrders';
+import { validateLimitOrderSupport } from 'utils/methods';
+import { MASSA, USDC } from 'utils/tokens';
+import type { Token } from 'utils/types';
+import './index.scss';
 
 const LimitOrderCard: React.FC = () => {
   const { connectedAddress, balances, refetch } = useContext(
@@ -29,7 +29,7 @@ const LimitOrderCard: React.FC = () => {
   // Form state - tokens are now locked
   const fromToken = USDC;
   const toToken = MASSA;
-  const [inputAmount, setInputAmount] = useState("");
+  const [inputAmount, setInputAmount] = useState('');
 
   // UI state - token selector removed
   const [priceInputFocused, setPriceInputFocused] = useState(false);
@@ -42,8 +42,8 @@ const LimitOrderCard: React.FC = () => {
   // Token selector state removed
 
   // Get balances
-  const fromBalance = balances.get(fromToken?.address || "") || 0n;
-  const toBalance = balances.get(toToken?.address || "") || 0n;
+  const fromBalance = balances.get(fromToken?.address || '') || 0n;
+  const toBalance = balances.get(toToken?.address || '') || 0n;
 
   // Check if limit orders are supported for the selected tokens
   useEffect(() => {
@@ -117,20 +117,20 @@ const LimitOrderCard: React.FC = () => {
     createLimitOrder,
     isCreatingOrder,
     orderError,
-    clearError,
+    clearError
   } = useManageLimitOrders({
     userAddress: connectedAddress || undefined,
     token0: fromToken,
     token1: toToken,
     resetTokensInputs: () => {
-      setInputAmount("");
+      setInputAmount('');
     },
     amountIn,
     quantityIn: inputAmount,
     allowedSlippage,
     fetchBalances: () => {
-      refetch(["balances"]);
-    },
+      refetch(['balances']);
+    }
   });
 
   // Use the advanced error or fallback to original error
@@ -184,13 +184,13 @@ const LimitOrderCard: React.FC = () => {
       fromToken,
       toToken,
       fromAmount: inputAmount,
-      limitPrice: priceLODisplayed || "0",
-      orderType: isSellOrder ? "sell" : "buy",
+      limitPrice: priceLODisplayed || '0',
+      orderType: isSellOrder ? 'sell' : 'buy'
     });
 
     if (success) {
       // Clear form on successful order creation
-      setInputAmount("");
+      setInputAmount('');
       // Price will be reset via hook
     }
   };
@@ -219,8 +219,8 @@ const LimitOrderCard: React.FC = () => {
 
   if (!connectedAddress) {
     return (
-      <div className="limit-order-card">
-        <div className="limit-order-card__connect">
+      <div className='limit-order-card'>
+        <div className='limit-order-card__connect'>
           <p>Connect your wallet to create limit orders</p>
         </div>
       </div>
@@ -228,32 +228,32 @@ const LimitOrderCard: React.FC = () => {
   }
 
   return (
-    <div className="limit-order-card">
-      <div className="limit-order-card__header">
+    <div className='limit-order-card'>
+      <div className='limit-order-card__header'>
         <h2>Create Limit Order</h2>
       </div>
 
-      <div className="limit-order-card__form">
+      <div className='limit-order-card__form'>
         {/* From Token Input */}
-        <div className="token-input">
-          <div className="token-input__header">
-            <span className="token-input__label">From</span>
-            <span className="token-input__balance" onClick={handleMaxClick}>
+        <div className='token-input'>
+          <div className='token-input__header'>
+            <span className='token-input__label'>From</span>
+            <span className='token-input__balance' onClick={handleMaxClick}>
               Balance: {formatBalance(fromBalance, fromToken)}
             </span>
           </div>
-          <div className="token-input__wrapper">
+          <div className='token-input__wrapper'>
             <Input
-              type="number"
-              placeholder="0.0"
+              type='number'
+              placeholder='0.0'
               value={inputAmount}
               onChange={(e) => handleInputAmountChange(e.target.value)}
               rightAddon={
-                <div className="token-display">
+                <div className='token-display'>
                   <img
                     src={fromToken.logoURI}
                     alt={fromToken.symbol}
-                    className="token-logo"
+                    className='token-logo'
                   />
                   <span>{fromToken.symbol}</span>
                 </div>
@@ -270,24 +270,24 @@ const LimitOrderCard: React.FC = () => {
         </div> */}
 
         {/* To Token Input */}
-        <div className="token-input">
-          <div className="token-input__header">
-            <span className="token-input__label">To (estimated)</span>
-            <span className="token-input__balance">
+        <div className='token-input'>
+          <div className='token-input__header'>
+            <span className='token-input__label'>To (estimated)</span>
+            <span className='token-input__balance'>
               Balance: {formatBalance(toBalance, toToken)}
             </span>
           </div>
           <Input
-            type="number"
-            placeholder="0.0"
-            value={orderAmountOutDisplayed || ""}
+            type='number'
+            placeholder='0.0'
+            value={orderAmountOutDisplayed || ''}
             readOnly
             rightAddon={
-              <div className="token-display">
+              <div className='token-display'>
                 <img
                   src={toToken.logoURI}
                   alt={toToken.symbol}
-                  className="token-logo"
+                  className='token-logo'
                 />
                 <span>{toToken.symbol}</span>
               </div>
@@ -297,7 +297,7 @@ const LimitOrderCard: React.FC = () => {
 
         {/* Advanced Limit Price Input */}
         <PriceInput
-          price={priceLODisplayed || ""}
+          price={priceLODisplayed || ''}
           onPriceChange={setPriceLODisplayed}
           onKeyDown={handleKeyDownLimit}
           onBlur={handleBlur}
@@ -314,11 +314,11 @@ const LimitOrderCard: React.FC = () => {
 
         {/* Limit Order Error Warning */}
         {(finalLimitOrderError || orderError) && (
-          <div className="error-info-container">
-            <span className="error-info">
-              - {finalLimitOrderError || orderError}{" "}
+          <div className='error-info-container'>
+            <span className='error-info'>
+              - {finalLimitOrderError || orderError}{' '}
               <span
-                className="error-info-link"
+                className='error-info-link'
                 onClick={() => setShowLimitOrderPoolsModal(true)}
               >
                 View supported pools
@@ -328,7 +328,7 @@ const LimitOrderCard: React.FC = () => {
         )}
 
         {/* Allowance Status - Show when allowance is insufficient */}
-        {fromToken?.symbol !== "MAS" &&
+        {fromToken?.symbol !== 'MAS' &&
           inputAmount &&
           parseFloat(inputAmount) > 0 &&
           fromToken &&
@@ -336,21 +336,21 @@ const LimitOrderCard: React.FC = () => {
             parseFloat(inputAmount) &&
           amountIn > allowance && (
             <div
-              className="order-details"
+              className='order-details'
               style={{
-                background: "rgba(239, 68, 68, 0.1)",
-                borderColor: "var(--error-color)",
+                background: 'rgba(239, 68, 68, 0.1)',
+                borderColor: 'var(--error-color)'
               }}
             >
-              <div className="order-details__row">
-                <span style={{ color: "var(--error-color)" }}>
+              <div className='order-details__row'>
+                <span style={{ color: 'var(--error-color)' }}>
                   Allowance Required
                 </span>
-                <span style={{ color: "var(--error-color)", fontSize: "12px" }}>
+                <span style={{ color: 'var(--error-color)', fontSize: '12px' }}>
                   {(
                     (Number(amountIn) - Number(allowance)) /
                     10 ** fromToken.decimals
-                  ).toFixed(6)}{" "}
+                  ).toFixed(6)}{' '}
                   {fromToken.symbol}
                 </span>
               </div>
@@ -358,16 +358,16 @@ const LimitOrderCard: React.FC = () => {
                 onClick={() => submitIncreaseAllowanceTx()}
                 disabled={pendingAllowance}
                 loading={pendingAllowance}
-                size="sm"
-                variant="outline"
+                size='sm'
+                variant='outline'
                 style={{
-                  marginTop: "8px",
-                  borderColor: "var(--error-color)",
-                  color: "var(--error-color)",
-                  width: "100%",
+                  marginTop: '8px',
+                  borderColor: 'var(--error-color)',
+                  color: 'var(--error-color)',
+                  width: '100%'
                 }}
               >
-                {pendingAllowance ? "Approving..." : "Approve Token"}
+                {pendingAllowance ? 'Approving...' : 'Approve Token'}
               </Button>
             </div>
           )}
@@ -378,9 +378,9 @@ const LimitOrderCard: React.FC = () => {
           disabled={!isFormValid()}
           loading={isCreatingOrder}
           fullWidth
-          size="lg"
+          size='lg'
         >
-          {isCreatingOrder ? "Creating Order..." : "Create Order"}
+          {isCreatingOrder ? 'Creating Order...' : 'Create Order'}
         </Button>
       </div>
 
