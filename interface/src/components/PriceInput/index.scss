@@ -1,5 +1,5 @@
 .price-input {
-  margin-bottom: 1rem;
+  margin-bottom: var(--spacing-md);
 
   &--disabled {
     opacity: 0.5;
@@ -9,13 +9,13 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 0.5rem;
+    margin-bottom: var(--spacing-sm);
   }
 
   &__label-section {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: var(--spacing-sm);
   }
 
   &__label {
@@ -30,19 +30,19 @@
     font-weight: 500;
 
     &--above {
-      color: #10b981; // green
+      color: var(--success-color);
     }
 
     &--below {
-      color: #ef4444; // red
+      color: var(--error-color);
     }
   }
 
   &__reset-btn {
     display: flex;
     align-items: center;
-    gap: 0.25rem;
-    padding: 0.25rem 0.5rem;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-xs) var(--spacing-sm);
     border: none;
     background: transparent;
     color: var(--text-secondary);
@@ -50,8 +50,8 @@
     font-weight: 500;
     text-transform: uppercase;
     cursor: pointer;
-    border-radius: 0.25rem;
-    transition: all 0.2s ease;
+    border-radius: var(--radius-sm);
+    transition: var(--transition);
 
     &:hover {
       color: var(--text-primary);
@@ -77,29 +77,29 @@
   }
 
   &__skeleton {
-    height: 3rem;
-    border-radius: 0.5rem;
+    height: 48px;
+    border-radius: var(--radius-md);
   }
 
   &__footer {
     display: flex;
     justify-content: flex-end;
-    margin-top: 0.5rem;
+    margin-top: var(--spacing-sm);
   }
 
   &__invert-btn {
     display: flex;
     align-items: center;
-    gap: 0.25rem;
-    padding: 0.25rem 0.5rem;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-xs) var(--spacing-sm);
     border: none;
     background: transparent;
     color: var(--text-secondary);
     font-size: 0.75rem;
     font-weight: 500;
     cursor: pointer;
-    border-radius: 0.25rem;
-    transition: all 0.2s ease;
+    border-radius: var(--radius-sm);
+    transition: var(--transition);
 
     &:hover {
       color: var(--text-primary);
@@ -113,7 +113,7 @@
   }
 
   &__help {
-    margin-top: 0.25rem;
+    margin-top: var(--spacing-xs);
     text-align: center;
   }
 
@@ -121,20 +121,5 @@
     font-size: 0.7rem;
     color: var(--text-muted);
     font-style: italic;
-  }
-}
-
-// Dark theme adjustments
-@media (prefers-color-scheme: dark) {
-  .price-input {
-    &__diff {
-      &--above {
-        color: #34d399;
-      }
-
-      &--below {
-        color: #f87171;
-      }
-    }
   }
 }
