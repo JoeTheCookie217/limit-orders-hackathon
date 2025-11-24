@@ -3,8 +3,11 @@ import ActiveOrdersList from "components/ActiveOrdersList";
 import Button from "components/Button";
 import LimitOrderCard from "components/LimitOrderCard";
 import WalletConnectModal from "components/WalletConnectModal";
+import PriceChartContainer from "components/PriceChartContainer";
 import { AccountWrapperContext } from "context/AccountWrapperContext";
 import { useFetchOrders } from "hooks/useFetchOrders";
+import { MasUsdc20V2 } from "utils/pools";
+import { USDC, MASSA } from "utils/tokens";
 import "./index.scss";
 
 const LimitOrdersPage: React.FC = () => {
@@ -70,6 +73,14 @@ const LimitOrdersPage: React.FC = () => {
               refetch={refetch}
             />
           </div>
+        </div>
+
+        <div className="limit-orders-page__chart">
+          <PriceChartContainer
+            poolAddress={MasUsdc20V2.pairAddress}
+            token0={MASSA}
+            token1={USDC}
+          />
         </div>
       </div>
     </div>

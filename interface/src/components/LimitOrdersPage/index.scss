@@ -77,6 +77,11 @@
     display: flex;
     flex-direction: column;
   }
+
+  &__chart {
+    width: 100%;
+    margin-top: clamp(24px, 4vw, 48px);
+  }
 }
 
 // Ultra-wide screens
@@ -101,6 +106,10 @@
     &__main {
       gap: 48px;
     }
+
+    &__chart {
+      margin-top: 56px;
+    }
   }
 }
 
@@ -119,6 +128,10 @@
 
     &__main {
       gap: var(--spacing-lg);
+    }
+
+    &__chart {
+      margin-top: var(--spacing-xl);
     }
   }
 }
@@ -146,6 +159,10 @@
     &__main {
       grid-template-columns: 1fr;
       gap: var(--spacing-lg);
+    }
+
+    &__chart {
+      margin-top: var(--spacing-lg);
     }
 
     &__connect-content {
@@ -185,6 +202,10 @@
 
     &__main {
       gap: var(--spacing-md);
+    }
+
+    &__chart {
+      margin-top: var(--spacing-md);
     }
 
     &__connect-content {
