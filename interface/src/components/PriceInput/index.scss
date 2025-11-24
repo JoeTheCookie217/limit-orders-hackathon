@@ -123,3 +123,27 @@
     font-style: italic;
   }
 }
+
+// Mobile breakpoint
+@media (max-width: 768px) {
+  .price-input {
+    &__label {
+      font-size: 14px;
+    }
+
+    &__reset-btn,
+    &__invert-btn {
+      min-width: 44px;
+      min-height: 44px;
+      padding: 12px;
+      font-size: 14px;
+    }
+  }
+}
+
+// Hide arrow key instructions on touch devices
+@media (pointer: coarse) {
+  .price-input__help {
+    display: none;
+  }
+}

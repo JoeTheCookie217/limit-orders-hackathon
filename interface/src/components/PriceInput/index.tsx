@@ -86,6 +86,7 @@ const PriceInput: React.FC<PriceInputProps> = ({
           <Input
             type="number"
             step="any"
+            inputMode="decimal"
             value={isDisabled ? '' : price}
             placeholder={isDisabled ? '—' : placeholder}
             onChange={(e) => {

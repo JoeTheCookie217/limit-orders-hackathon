@@ -191,6 +191,15 @@
       background: rgba(239, 68, 68, 0.1);
       border-color: var(--error-color);
     }
+
+    &:active:not(:disabled) {
+      transform: scale(0.95);
+      opacity: 0.8;
+    }
+  }
+
+  &:active:not(:disabled) {
+    transform: scale(0.95);
   }
 
   svg {
@@ -233,6 +242,11 @@
 
   &:hover {
     color: var(--primary-color-hover);
+  }
+
+  &:active {
+    transform: scale(0.95);
+    opacity: 0.8;
     text-decoration: underline;
   }
 
@@ -274,6 +288,10 @@
 // Mobile breakpoint
 @media (max-width: 768px) {
   .active-orders-list {
+    &__content {
+      max-height: 80vh;
+    }
+
     &__header {
       padding: var(--spacing-md);
 
@@ -319,8 +337,8 @@
   }
 
   .action-btn {
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
 
     svg {
       font-size: 13px;
@@ -332,7 +350,7 @@
 @media (max-width: 480px) {
   .active-orders-list {
     &__header {
-      padding: 12px;
+      padding: 16px;
 
       h3 {
         font-size: 14px;
@@ -341,7 +359,7 @@
 
     &__loading,
     &__empty {
-      padding: var(--spacing-lg) 12px;
+      padding: var(--spacing-lg) 16px;
 
       p {
         font-size: 14px;
@@ -350,7 +368,7 @@
   }
 
   .order-item {
-    padding: 12px;
+    padding: 16px;
 
     &__header {
       margin-bottom: var(--spacing-sm);
@@ -368,11 +386,11 @@
 
   .detail-row {
     .detail-label {
-      font-size: 11px;
+      font-size: 12px;
     }
 
     .detail-value {
-      font-size: 13px;
+      font-size: 14px;
     }
   }
 }

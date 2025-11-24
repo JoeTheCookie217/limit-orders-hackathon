@@ -259,11 +259,20 @@
   }
 }
 
-// Mobile breakpoint
+// Mobile breakpoint - Bottom sheet pattern
 @media (max-width: 768px) {
+  .wallet-modal-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
   .wallet-modal {
-    margin: var(--spacing-md);
-    max-width: none;
+    margin: 0;
+    max-width: 100%;
+    width: 100%;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    max-height: 85vh;
+    animation: slideUpFromBottom 0.3s ease;
 
     &__header {
       padding: var(--spacing-md);
@@ -286,9 +295,9 @@
     padding: 12px;
 
     &__icon {
-      width: 40px;
-      height: 40px;
-      font-size: 20px;
+      width: 48px;
+      height: 48px;
+      font-size: 24px;
       margin-right: 12px;
     }
 
@@ -301,6 +310,17 @@
         font-size: 13px;
       }
     }
+  }
+}
+
+@keyframes slideUpFromBottom {
+  from {
+    transform: translateY(100%);
+    opacity: 0.8;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
   }
 }
 

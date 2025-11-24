@@ -136,9 +136,15 @@
     }
   }
 
-  // Mobile breakpoint
+  // Mobile breakpoint - Bottom sheet
   @media (max-width: 768px) {
+    margin: 0;
+    max-width: 100%;
+    width: 100%;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    max-height: 85vh;
     padding: var(--spacing-md);
+    animation: slideUpFromBottom 0.3s ease;
 
     .modal-header {
       margin-bottom: var(--spacing-md);
@@ -146,6 +152,17 @@
       h2 {
         font-size: 18px;
       }
+    }
+  }
+
+  @keyframes slideUpFromBottom {
+    from {
+      transform: translateY(100%);
+      opacity: 0.8;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
     }
   }
 
@@ -196,4 +213,11 @@
   justify-content: center;
   z-index: 1000;
   padding: 20px;
+
+  // Mobile bottom sheet pattern
+  @media (max-width: 768px) {
+    align-items: flex-end;
+    padding: 0;
+    background: rgba(0, 0, 0, 0.85);
+  }
 }

@@ -59,6 +59,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
               'input--with-right-addon': rightAddon,
             })}
             disabled={disabled}
+            inputMode={props.type === 'number' ? 'decimal' : undefined}
             {...props}
           />
 
