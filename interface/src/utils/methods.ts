@@ -190,3 +190,18 @@ export const formatPrice = (price: number, maxDecimals = 6): string => {
     maximumFractionDigits: maxDecimals,
   });
 };
+
+/**
+ * Abbreviate large numbers for mobile display
+ * @param num - The number to abbreviate
+ * @param decimals - Number of decimal places (default: 2)
+ * @returns Abbreviated string (e.g., "1.5M", "5.4K")
+ */
+export const abbreviateNumber = (num: number, decimals: number = 2): string => {
+  if (num >= 1_000_000) {
+    return (num / 1_000_000).toFixed(decimals) + 'M';
+  } else if (num >= 1_000) {
+    return (num / 1_000).toFixed(decimals) + 'K';
+  }
+  return num.toFixed(decimals);
+};

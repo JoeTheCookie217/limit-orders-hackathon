@@ -94,3 +94,18 @@ export interface Transaction {
 }
 
 export type Allowance = 'increase' | 'increaseMax';
+
+// Chart types
+export enum TimeWindow {
+  Day = 1,
+  Week = 7,
+  Month = 30
+}
+
+export type Price = {
+  date: Date;
+  open: number;
+  close: number;
+  high: number;
+  low: number;
+};
